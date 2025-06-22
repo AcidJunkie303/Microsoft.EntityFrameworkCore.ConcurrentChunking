@@ -1,15 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+    <PropertyGroup>
+        <IsTestProject>true</IsTestProject>
+        <NoWarn>$(NoWarn);RCS1046</NoWarn>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0"/>
     </ItemGroup>
 
-    <PropertyGroup>
-        <IsTestProject>true</IsTestProject>
-    </PropertyGroup>
-
     <ItemGroup>
         <Using Include="Xunit"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj"/>
     </ItemGroup>
 
 </Project>

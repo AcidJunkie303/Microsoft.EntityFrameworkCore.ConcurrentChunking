@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
+// TODO:
+// - add post-filtering support
+
 public sealed class ChunkedEntityLoader<TContext, TEntity> : IChunkedEntityLoader<TEntity>
     where TContext : DbContext
     where TEntity : class
@@ -14,6 +17,7 @@ public sealed class ChunkedEntityLoader<TContext, TEntity> : IChunkedEntityLoade
     private readonly Func<TContext, IOrderedQueryable<TEntity>> _sourceQueryProvider;
     private readonly ChunkedEntityLoaderOptions _options;
     private readonly ILogger<ChunkedEntityLoader<TContext, TEntity>>? _logger;
+    private readonly ILoggerFactory? _loggerFactory;
     private readonly Channel<Chunk<TEntity>> _channel;
     private readonly IDbContextFactory<TContext> _dbContextFactory;
     private readonly SemaphoreSlim _producerLimiterSemaphore;
@@ -27,10 +31,12 @@ public sealed class ChunkedEntityLoader<TContext, TEntity> : IChunkedEntityLoade
         int maxConcurrentProducerCount,
         Func<TContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
+        ILoggerFactory? loggerFactory = null,
         ILogger<ChunkedEntityLoader<TContext, TEntity>>? logger = null
     )
     {
         _sourceQueryProvider = sourceQueryProvider;
+        _loggerFactory = loggerFactory;
         _options = options;
         _logger = logger;
         _dbContextFactory = dbContextFactory;
@@ -94,9 +100,9 @@ public sealed class ChunkedEntityLoader<TContext, TEntity> : IChunkedEntityLoade
 
         var startedTimestamp = Stopwatch.GetTimestamp();
         var entities = await query
-            .Skip(startIndex)
-            .Take(_chunkSize)
-            .ToListAsync(cancellationToken);
+                            .Skip(startIndex)
+                            .Take(_chunkSize)
+                            .ToListAsync(cancellationToken);
 
         _logger?.LogTrace("Produced chunk #{ChunkIndex} with {StartIndex} for {EntityTypeName} with {EntityCount} entities. Duration {DurationInMs} ms.", chunkIndex, startIndex, EntityTypeName, entities.Count, Stopwatch.GetElapsedTime(startedTimestamp).TotalMilliseconds);
 
@@ -106,8 +112,8 @@ public sealed class ChunkedEntityLoader<TContext, TEntity> : IChunkedEntityLoade
 
     private IChannelReader<TEntity> CreateChannelReader()
         => _options.HasFlag(ChunkedEntityLoaderOptions.PreserveChunkOrder)
-            ? new OrderedChannelReader<TEntity>(_channel.Reader)
-            : new UnorderedChannelReader<TEntity>(_channel.Reader);
+            ? new OrderedChannelReader<TEntity>(_channel.Reader, _loggerFactory?.CreateLogger<OrderedChannelReader<TEntity>>())
+            : new UnorderedChannelReader<TEntity>(_channel.Reader, _loggerFactory?.CreateLogger<UnorderedChannelReader<TEntity>>());
 
     private async Task<int> GetExpectedEntityCoundAsync()
     {
