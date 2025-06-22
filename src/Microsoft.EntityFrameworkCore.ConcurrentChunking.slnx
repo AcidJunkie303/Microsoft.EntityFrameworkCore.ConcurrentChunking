@@ -1,0 +1,12 @@
+﻿<Solution>
+  <Folder Name="/Solution Files/">
+    <File Path=".editorconfig" />
+    <File Path="BannedSymbols.txt" />
+    <File Path="Directory.Build.props" />
+    <File Path="Microsoft.EntityFrameworkCore.ConcurrentChunking.slnx" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.csproj" Type="Classic C#" />
+  </Folder>
+  <Project Path="Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj" Type="Classic C#" />
+</Solution>

@@ -1,0 +1,119 @@
+<Project>
+    <PropertyGroup>
+        <SolutionDir Condition="'$(SolutionDir)'==''">$(MSBuildThisFileDirectory)</SolutionDir>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- CA1014     CLS compliance is no longer a must, even some MS .NET Core is not anymore enforcing it -->
+        <!-- CA1032     There should be no dead code, that applies to exception classes too -->
+        <!-- CA1034     Public nested types is a preference, many folks at MS, or even Jimmy Boggard acknowledge that -->
+        <!-- CA1062     Does not recognize scenarios where arguments are not null, see: https://github.com/dotnet/roslyn-analyzers/issues/2877 -->
+        <!-- CA1303     All our tools are English only, we don't need to localize any string -->
+        <!-- CA1848     Use the LoggerMessage delegates -> no performance critical stuff we're doing here -->
+        <!-- CA2007     Do not directly await a Task -> no enforcement -->
+        <!-- IDE0008    Use explicit type instead of var -->
+        <!-- IDE0022    Use expression body for methods -> no enforcement -->
+        <!-- MA0004     Use Task.ConfigureAwait -> no enforcement -->
+        <!-- MA0045     Do not use blocking calls in a sync method -> We're not using async (mostly) -->
+        <!-- NU1901     Warning As Error: Package 'Microsoft.Identity.Client' 4.56.0 has a known low severity vulnerability-->
+        <!-- NU1902     Warning As Error: Package 'Azure.Identity' 1.10.3 has a known moderate severity vulnerability-->
+        <!-- NU1903     Warning As Error: Package 'System.Formats.Asn1' 5.0.0 has a known high severity vulnerability-->
+        <!-- RCS1004    Remove braces from if-else -> Style preference -->
+        <!-- RCS1061    Merge 'if' with nested 'if' -> Sometimes it becomes hard to read -->
+        <!-- RCS1205    Order named arguments according to the order of parameters -> Sometimes, we want different orders. e.g. when dealing with nexted ToDictionary() calls for readability -->
+        <!-- RCS1112    Combine 'Enumerable.Where' method chain -> We don't enforce it because it might become much less readable-->
+        <!-- RCS1194    We should only implement exception constructors we use, we don't want dead code -->
+        <!-- S1066      Mergeable "if" statements should be combined -> Sometimes it becomes hard to read -->
+        <!-- S1135      Already covered by MA0026 -->
+        <!-- S3267      Loops should be simplified using the "Where" LINQ method -> we don't want to enforce it -->
+        <!-- SA1600     Elements Must Be Documented-->
+        <!-- S1075      Refactor your code not to use hardcoded absolute paths or URIs. -> All diagnostic definitions contain absolute paths. Cannot be changed-->
+        <!-- S1312      Logger fields should be "private static readonly -> WTF!?!?!? -->
+        <!-- S4462      Use Task.WhenAll -> we don't use async here -->
+        <NoWarn>CA1014;CA1032;CA1034;CA1062;CA1303;CA1848;CA2007;IDE0008;IDE0022;MA0004;MA0045;NU1901;NU1902;NU1903;RCS1004;RCS1061;RCS1205;RCS1112;RCS1194;S1066;S1075;S1135;S1312;S3267;SA1600;S4462;</NoWarn>
+
+        <!-- MA0025: NotImplementedException are like TODOs they should be warning only -->
+        <!-- MA0026: We know TODO items should be tackled, let's not create Errors for them -->
+        <!-- S1185:  We know TODO items should be tackled, let's not create Errors for them -->
+        <WarningsNotAsErrors>MA0025;MA0026</WarningsNotAsErrors>
+        <WarningLevel>9999</WarningLevel>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <AnalysisLevel>latest</AnalysisLevel>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <LangVersion>13.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <SignAssembly>false</SignAssembly>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+
+    <!-- C# Analyzers -->
+    <ItemGroup>
+        <PackageReference Include="Meziantou.Analyzer" Version="2.0.202">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.12.0.118525">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Roslynator.Analyzers" Version="4.13.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Version="4.13.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Ardalis.GuardClauses" Version="5.0.0"/>
+    </ItemGroup>
+    <ItemGroup>
+        <AdditionalFiles Include="$(SolutionDir)BannedSymbols.txt"/>
+    </ItemGroup>
+
+    <!-- Unit testing -->
+    <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+        <PackageReference Include="Shouldly" Version="4.3.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+        <PackageReference Include="xunit" Version="2.9.3"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1" privateAssets="all"/>
+        <PackageReference Include="JunitXml.TestLogger" Version="6.1.0"/>
+        <PackageReference Include="coverlet.collector" Version="6.0.4">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <Target Name="AddInternalsVisibleTo" BeforeTargets="BeforeCompile">
+        <!-- Add default suffix if there is no InternalsVisibleTo or InternalsVisibleToSuffix defined -->
+        <ItemGroup Condition="@(InternalsVisibleToSuffix->Count()) == 0 AND @(InternalsVisibleTo->Count()) == 0">
+            <InternalsVisibleToSuffix Include=".Tests"/>
+        </ItemGroup>
+
+        <!-- Handle InternalsVisibleTo -->
+        <ItemGroup Condition="'@(InternalsVisibleTo->Count())' &gt; 0">
+            <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+                <_Parameter1>%(InternalsVisibleTo.Identity)</_Parameter1>
+            </AssemblyAttribute>
+        </ItemGroup>
+
+        <!-- Handle InternalsVisibleToSuffix -->
+        <ItemGroup Condition="@(InternalsVisibleToSuffix->Count()) &gt; 0">
+            <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+                <_Parameter1>$(AssemblyName)%(InternalsVisibleToSuffix.Identity)</_Parameter1>
+            </AssemblyAttribute>
+        </ItemGroup>
+    </Target>
+</Project>
