@@ -1,4 +1,6 @@
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
+using Microsoft.EntityFrameworkCore;
+
+namespace Playground;
 
 internal sealed class MyDbContext : DbContext
 {
@@ -6,7 +8,7 @@ internal sealed class MyDbContext : DbContext
                                                                    .UseInMemoryDatabase("TestDb")
                                                                    .Options;
 
-    public DbSet<SimpleEntity> SimpleEntities { get; set; } = null!;
+    public DbSet<MyEntity> MyEntities { get; set; } = null!;
 
     public MyDbContext() : base(Options)
     {
@@ -16,7 +18,7 @@ internal sealed class MyDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<SimpleEntity>()
+        modelBuilder.Entity<MyEntity>()
                     .Property(e => e.Id)
                     .ValueGeneratedNever();
     }
