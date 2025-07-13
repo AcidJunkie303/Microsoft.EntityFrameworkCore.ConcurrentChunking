@@ -109,7 +109,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
         await Task.WhenAll(tasks);
 
-        await _channel.Writer.WriteAsync(null!, cancellationToken);
+        await _channel.Writer.WriteAsync(Chunk<TEntity>.TerminatingChunk, cancellationToken);
         _channel.Writer.Complete();
     }
 

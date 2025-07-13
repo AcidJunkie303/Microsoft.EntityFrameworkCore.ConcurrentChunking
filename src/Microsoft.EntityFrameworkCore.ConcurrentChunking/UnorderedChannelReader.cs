@@ -30,9 +30,9 @@ internal sealed class UnorderedChannelReader<TEntity> : IChannelReader<TEntity>
         while (true)
         {
             var chunk = await _channelReader.ReadAsync(cancellationToken);
-            if (chunk is null) // Null chunk signals completion
+            if (chunk.IsTerminatingChunk) // Null chunk signals completion
             {
-                _logger?.LogTrace("Received null-chunk which indicates completion.");
+                _logger?.LogTrace("Received terminating chunk which indicates completion.");
                 yield break;
             }
 

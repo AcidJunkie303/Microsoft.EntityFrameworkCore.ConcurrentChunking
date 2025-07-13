@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
+using Playground.Logging;
 
 namespace Playground;
 
@@ -66,17 +67,20 @@ internal static class Program
                              dbContextFactory: () => new TestDbContext(),
                              chunkSize: 1_000,
                              maxDegreeOfParallelism: 10,
-                             options: ChunkedEntityLoaderOptions.PreserveChunkOrder
+                             options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
+                             loggerFactory: new ConsoleLoggerFactory()
                          );
 
         await Task.Delay(10_000);
 
         await foreach (var chunk in chunks)
         {
+            /*
             foreach (var entity in chunk.Entities)
             {
                 Console.WriteLine($"Id: {entity.Id}, Value: {entity.Value}");
             }
+            */
         }
     }
 }
