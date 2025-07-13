@@ -36,12 +36,3 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
         );
     }
 }
-/*
-         IDbContextFactory<TDbContext> dbContextFactory,
-        int chunkSize,
-        int maxConcurrentProducerCount,
-        Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
-        ILoggerFactory? loggerFactory = null,
-        ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
- */

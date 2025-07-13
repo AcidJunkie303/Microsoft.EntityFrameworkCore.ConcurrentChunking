@@ -86,6 +86,7 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
                 LogLevel.Warning     => "warn",
                 LogLevel.Error       => "fail",
                 LogLevel.Critical    => "crit",
+                LogLevel.None        => "none",
                 _                    => throw new ArgumentOutOfRangeException(nameof(logLevel))
             };
         }

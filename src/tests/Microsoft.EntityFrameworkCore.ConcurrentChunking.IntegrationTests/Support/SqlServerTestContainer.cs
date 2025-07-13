@@ -48,7 +48,7 @@ internal static class SqlServerTestContainer
     {
         if (!WasAlreadyRunning && MsSqlContainer is not null)
         {
-            await MsSqlContainer.StopAsync();
+            await MsSqlContainer.StopAsync( TestContext.Current.CancellationToken);
             await MsSqlContainer.DisposeAsync();
             MsSqlContainer = null;
         }

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace Playground;
 
-internal sealed class MyEntity
+internal sealed class TestEntity
 {
     public int Id { get; set; }
     public string? Value { get; set; }

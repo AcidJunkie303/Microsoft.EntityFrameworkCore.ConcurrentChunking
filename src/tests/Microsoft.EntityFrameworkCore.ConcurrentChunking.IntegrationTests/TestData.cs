@@ -25,7 +25,7 @@ internal static class TestData
 
     private static async Task SeedDatabaseAsync(TestDbContext ctx)
     {
-        await ctx.Database.ExecuteSqlRawAsync("TRUNCATE TABLE dbo.SimpleEntity");
+        await ctx.Database.ExecuteSqlRawAsync("TRUNCATE TABLE dbo.SimpleEntity", TestContext.Current.CancellationToken);
 
         using var table = CreateSimpleEntitiesTable();
 
@@ -46,7 +46,7 @@ internal static class TestData
     {
         var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
         var maxId = count > 0
-            ? await ctx.SimpleEntities.MaxAsync(a => a.Id)
+            ? await ctx.SimpleEntities.MaxAsync(a => a.Id, TestContext.Current.CancellationToken)
             : 0;
 
         return count == MaxId && maxId == MaxId;

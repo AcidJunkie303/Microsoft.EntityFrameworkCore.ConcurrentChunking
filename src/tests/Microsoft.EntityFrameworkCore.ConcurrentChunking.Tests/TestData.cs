@@ -1,11 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Entities;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
 
+[SuppressMessage("Performance", "MA0158:Use System.Threading.Lock", Justification = "we support both, .NET8.0 and .NET9.0")]
 internal static class TestData
 {
     public const int EntityCount = 10001;
-    public const int DefaultChunkSize = 1000;
 
     private static bool IsInitialized;
     private static readonly object Lock = new();

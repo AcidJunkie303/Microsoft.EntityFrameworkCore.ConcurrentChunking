@@ -17,12 +17,12 @@ public sealed partial class OrderedQueryableExtensionsTests
         // act
         var chunks = await baseQuery
                           .LoadChunkedAsync(
-                               () => new TestDbContext(),
-                               10_000,
-                               3,
-                               ChunkedEntityLoaderOptions.None,
-                               _loggerFactory,
-                               TestContext.Current.CancellationToken)
+                               dbContextFactory: () => new TestDbContext(),
+                               chunkSize: 10_000,
+                               maxDegreeOfParallelism: 3,
+                               options: ChunkedEntityLoaderOptions.None,
+                               loggerFactory: _loggerFactory,
+                               cancellationToken: TestContext.Current.CancellationToken)
                           .ToListAsync(TestContext.Current.CancellationToken);
 
         var items = chunks.SelectMany(a => a.Entities).ToList();

@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <IsTestProject>true</IsTestProject>
+        <TargetFrameworks>net9.0</TargetFrameworks>
         <NoWarn>$(NoWarn);RCS1046;CA1707;S4017</NoWarn>
         <OutputType>Exe</OutputType>
     </PropertyGroup>
@@ -11,8 +12,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.6"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.6"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7"/>
         <PackageReference Include="Testcontainers" Version="4.6.0"/>
         <PackageReference Include="Testcontainers.MsSql" Version="4.6.0"/>
     </ItemGroup>

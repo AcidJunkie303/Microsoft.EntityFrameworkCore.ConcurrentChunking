@@ -50,7 +50,7 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
             _categoryName = categoryName;
         }
 
-        public IDisposable? BeginScope<TState>(TState state)
+        public IDisposable BeginScope<TState>(TState state)
             where TState : notnull
             => _scopeProvider.Push(state);
 
@@ -87,6 +87,7 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
                 LogLevel.Warning     => "warn",
                 LogLevel.Error       => "fail",
                 LogLevel.Critical    => "crit",
+                LogLevel.None        => "none",
                 _                    => throw new ArgumentOutOfRangeException(nameof(logLevel))
             };
         }

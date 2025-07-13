@@ -4,6 +4,7 @@
     <File Path="BannedSymbols.txt" />
     <File Path="Directory.Build.props" />
     <File Path="Microsoft.EntityFrameworkCore.ConcurrentChunking.slnx" />
+    <File Path="..\README.md" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests\Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.csproj" Type="Classic C#" />

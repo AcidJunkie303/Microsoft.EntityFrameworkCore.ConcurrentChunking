@@ -4,5 +4,5 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 public enum ChunkedEntityLoaderOptions
 {
     None = 0,
-    PreserveChunkOrder= 1
+    PreserveChunkOrder = 1
 }
