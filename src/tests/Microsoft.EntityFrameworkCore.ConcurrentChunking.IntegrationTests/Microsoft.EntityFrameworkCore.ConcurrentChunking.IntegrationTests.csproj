@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsTestProject>true</IsTestProject>
+        <TargetFrameworks>net9.0</TargetFrameworks>
+        <NoWarn>$(NoWarn);RCS1046;CA1707;S4017</NoWarn>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Using Include="NUnit.Framework"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7"/>
+        <PackageReference Include="Testcontainers" Version="4.6.0"/>
+        <PackageReference Include="Testcontainers.MsSql" Version="4.6.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj"/>
+    </ItemGroup>
+
+</Project>
