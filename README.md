@@ -11,6 +11,9 @@ this library enables parallel and pre-emptive loading of entities, resulting in 
 await using var ctx = new TestDbContext();
 
 var chunks = ctx.TestEntities
+    .Include(e => e.RelatedEntity).ThenInclude(e => e.AnotherRelatedEntity)
+    .Include(e => e.RelatedEntity2)
+    .AsNoTracking()
     .OrderByDescending(a => a.Id)
     .LoadChunkedAsync(
         dbContextFactory: () => new TestDbContext(),
