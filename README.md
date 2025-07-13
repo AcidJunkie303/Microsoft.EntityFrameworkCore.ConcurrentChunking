@@ -9,23 +9,22 @@ in a parallel and chunked manner.
 
 ```csharp
 await using var ctx = new TestDbContext();
- 
+
 var chunks = ctx.TestEntities
-    .Where(a => a.Id > 1000)
     .OrderByDescending(a => a.Id)
-    .LoadChunkedAsync
-    (
+    .LoadChunkedAsync(
         dbContextFactory: () => new TestDbContext(),
-        chunkSize: 25_000,
-        maxDegreeOfParallelism: 10,
-        options: ChunkedEntityLoaderOptions.PreserveChunkOrder
-    );
+        chunkSize: 1_000,
+        maxDegreeOfParallelism: 5,
+        maxPrefetchCount: 10,
+        options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
+        loggerFactory: new ConsoleLoggerFactory());
 
 await foreach (var chunk in chunks)
 {
     foreach(var entity in chunk.Entities)
     {
-        Console.WriteLine($"Id: {entity.Id}, Value: {entity.Value}");
+        // do domething here
     }
 }
 ```

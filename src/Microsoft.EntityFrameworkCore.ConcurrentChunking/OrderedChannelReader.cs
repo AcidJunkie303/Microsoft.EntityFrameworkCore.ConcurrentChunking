@@ -53,14 +53,14 @@ internal sealed class OrderedChannelReader<TEntity> : IChannelReader<TEntity>
 
             if (chunk.ChunkIndex == expectedIndex)
             {
-                _logger?.LogTrace("Returning chunk with index {ChunkIndex}.", expectedIndex);
+                _logger?.LogTrace("Returning chunk with index {ChunkIndex}.", chunk.ChunkIndex);
                 yield return chunk;
                 expectedIndex++;
             }
             else
             {
                 // Buffer out-of-order chunk
-                _logger?.LogTrace("Chunk with index {ChunkIndex} was out of order. Moving to buffer.", expectedIndex);
+                _logger?.LogTrace("Chunk with index {ChunkIndex} was out of order. Moving to buffer.", chunk.ChunkIndex);
                 _pendingChunksByIndex[chunk.ChunkIndex] = chunk;
             }
         }

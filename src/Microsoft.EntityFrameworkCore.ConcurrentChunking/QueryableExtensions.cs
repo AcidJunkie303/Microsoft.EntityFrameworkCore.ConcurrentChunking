@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
 [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used", Justification = "This would result is a lot of overloads.")]
+[SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
 public static class QueryableExtensions
 {
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
@@ -15,6 +16,7 @@ public static class QueryableExtensions
         IDbContextFactory<TDbContext> dbContextFactory,
         int chunkSize,
         int maxDegreeOfParallelism,
+        int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
@@ -27,6 +29,7 @@ public static class QueryableExtensions
             dbContextFactory.CreateDbContext,
             chunkSize,
             maxDegreeOfParallelism,
+            maxPrefetchCount,
             options,
             loggerFactory,
             cancellationToken
@@ -38,6 +41,7 @@ public static class QueryableExtensions
         Func<TDbContext> dbContextFactory,
         int chunkSize,
         int maxDegreeOfParallelism,
+        int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
         ILoggerFactory? loggerFactory = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
@@ -57,6 +61,7 @@ public static class QueryableExtensions
             dbContextFactory: new DbContextFactoryForFunc<TDbContext>(dbContextFactory),
             chunkSize: chunkSize,
             maxConcurrentProducerCount: maxDegreeOfParallelism,
+            maxPrefetchCount: maxPrefetchCount,
             sourceQueryProvider: ctx => QueryFactory.Create(ctx, rootEntityType, query),
             options: options,
             loggerFactory: loggerFactory,

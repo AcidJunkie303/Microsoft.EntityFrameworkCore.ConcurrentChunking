@@ -33,7 +33,8 @@ public sealed class OrderedQueryableExtensionsTests : IDisposable
                           .LoadChunkedAsync(
                                dbContextFactory: () => new TestDbContext(),
                                chunkSize: 33_333,
-                               maxDegreeOfParallelism: 4,
+                               maxDegreeOfParallelism: 2,
+                               maxPrefetchCount: 4,
                                options: ChunkedEntityLoaderOptions.None,
                                loggerFactory: loggerFactory,
                                cancellationToken: TestContext.Current.CancellationToken)

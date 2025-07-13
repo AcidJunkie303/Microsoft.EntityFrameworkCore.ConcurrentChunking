@@ -19,7 +19,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new TestDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, options: ChunkedEntityLoaderOptions.None);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, maxPrefetchCount: 2, options: ChunkedEntityLoaderOptions.None);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
@@ -33,7 +33,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new TestDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, options: ChunkedEntityLoaderOptions.None);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, maxPrefetchCount: 2, options: ChunkedEntityLoaderOptions.None);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
@@ -56,7 +56,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new TestDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, options: options);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, maxPrefetchCount: 2, options: options);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);

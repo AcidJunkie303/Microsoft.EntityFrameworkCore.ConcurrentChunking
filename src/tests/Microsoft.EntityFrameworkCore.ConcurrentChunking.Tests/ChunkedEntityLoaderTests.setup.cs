@@ -22,6 +22,7 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
     (
         int chunkSize,
         int maxConcurrentProducerCount,
+        int maxPrefetchCount,
         ChunkedEntityLoaderOptions options
     )
     {
@@ -29,6 +30,7 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
             dbContextFactory: new TestDbContextFactory(),
             chunkSize: chunkSize,
             maxConcurrentProducerCount: maxConcurrentProducerCount,
+            maxPrefetchCount: maxPrefetchCount,
             sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id),
             options: options,
             loggerFactory: _loggerFactory,

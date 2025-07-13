@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
+[SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
 public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoader<TEntity>
     where TDbContext : DbContext
     where TEntity : class
@@ -18,6 +19,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly Channel<Chunk<TEntity>> _channel;
     private readonly Func<TDbContext> _dbContextFactory;
     private readonly SemaphoreSlim _producerLimiterSemaphore;
+    private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _chunkSize;
 
     [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used")]
@@ -26,6 +28,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         IDbContextFactory<TDbContext> dbContextFactory,
         int chunkSize,
         int maxConcurrentProducerCount,
+        int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
         ILoggerFactory? loggerFactory = null,
@@ -36,6 +39,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             dbContextFactory.CreateDbContext,
             chunkSize,
             maxConcurrentProducerCount,
+            maxPrefetchCount,
             sourceQueryProvider,
             options,
             loggerFactory,
@@ -50,6 +54,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         Func<TDbContext> dbContextFactory,
         int chunkSize,
         int maxConcurrentProducerCount,
+        int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
         ILoggerFactory? loggerFactory = null,
@@ -63,6 +68,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         _dbContextFactory = dbContextFactory;
         _chunkSize = chunkSize;
         _producerLimiterSemaphore = new SemaphoreSlim(maxConcurrentProducerCount, maxConcurrentProducerCount);
+        _prefetchLimiterSemaphore = new SemaphoreSlim(maxPrefetchCount, maxPrefetchCount);
 
         var channelOptions = new BoundedChannelOptions(maxConcurrentProducerCount)
         {
@@ -78,13 +84,18 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
         await foreach (var chunk in channelReader.ReadAsync(cancellationToken))
         {
+            _prefetchLimiterSemaphore.Release();
             yield return chunk;
         }
 
         await producersTask;
     }
 
-    public void Dispose() => _producerLimiterSemaphore.Dispose();
+    public void Dispose()
+    {
+        _producerLimiterSemaphore.Dispose();
+        _prefetchLimiterSemaphore.Dispose();
+    }
 
     private async Task StartProducersAsync(CancellationToken cancellationToken)
     {
@@ -101,6 +112,8 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         for (var i = 0; i < chunkCount; i++)
         {
             var currentChunkIndex = i;
+
+            await _prefetchLimiterSemaphore.WaitAsync(cancellationToken);
             await _producerLimiterSemaphore.WaitAsync(cancellationToken);
 
             var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), cancellationToken); // we do not await this task to allow concurrent production
