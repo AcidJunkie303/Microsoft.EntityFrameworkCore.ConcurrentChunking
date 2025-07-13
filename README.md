@@ -1,7 +1,7 @@
 # Microsoft.EntityFrameworkCore.ConcurrentChunking
 
-In scenarios where you need to process large entity sets, this library allows retrieving entities from entity framework
-in a parallel and chunked manner.
+If retrieving large collections of entities from Entity Framework is causing performance issues,
+this library enables parallel and pre-emptive loading of entities, resulting in much faster data access over time.
 
 # Examples
 
@@ -28,4 +28,3 @@ await foreach (var chunk in chunks)
     }
 }
 ```
-
