@@ -6,9 +6,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
-// TODO:
-// - add post-filtering support
-
 public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoader<TEntity>
     where TDbContext : DbContext
     where TEntity : class

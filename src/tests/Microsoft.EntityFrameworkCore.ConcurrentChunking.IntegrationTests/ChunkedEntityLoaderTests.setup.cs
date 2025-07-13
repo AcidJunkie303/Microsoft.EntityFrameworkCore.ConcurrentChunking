@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Entities;
-using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Support;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Entities;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Support;
+using Xunit;
 
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests;
 
 public sealed partial class ChunkedEntityLoaderTests : IDisposable
 {
-    private const int EntityCount = 10001;
     private readonly XunitLoggerFactory _loggerFactory;
 
     public ChunkedEntityLoaderTests(ITestOutputHelper testOutputHelper)
@@ -36,3 +36,12 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
         );
     }
 }
+/*
+         IDbContextFactory<TDbContext> dbContextFactory,
+        int chunkSize,
+        int maxConcurrentProducerCount,
+        Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
+        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
+        ILoggerFactory? loggerFactory = null,
+        ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
+ */

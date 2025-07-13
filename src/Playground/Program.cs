@@ -1,8 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
+﻿namespace Playground;
 
-namespace Playground;
-
-// TODO: remove
 #pragma warning disable
 
 internal static class Program
@@ -13,24 +10,7 @@ internal static class Program
 
         await using var ctx = new MyDbContext();
 
-        // act
-        var query = ctx.MyEntities
-                       .Where(a => a.Id % 100 >= 50)
-                       .Where(a => a.Id > 0)
-                       .OrderBy(a => a.Id);
-
-        await foreach (var chunk in query.LoadChunkedAsync(() => new MyDbContext(), 40, 30))
-        {
-            Console.WriteLine($"Retrieved chunk with {chunk.Entities.Count} entities from {chunk.ChunkIndex}.");
-        }
-
-        /*
-        var chunk0 = query.Skip(0).Take(1000).Test(()=> new MyDbContext());
-        var chunk1 = query.Skip(1000).Take(1000).Test(()=> new MyDbContext());
-        var chunk2 = query.Skip(2000).Take(1000).Test(()=> new MyDbContext());
-        var chunk3 = query.Skip(3000).Take(1000).Test(()=> new MyDbContext());
-*/
-        // assert
+        // do your test stuff here
     }
 
     private static void InitializeDbContext()

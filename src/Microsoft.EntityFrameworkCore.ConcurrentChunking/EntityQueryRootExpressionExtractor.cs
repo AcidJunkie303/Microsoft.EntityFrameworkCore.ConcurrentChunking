@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Query;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
-public static class EntityQueryRootExpressionExtractor
+internal static class EntityQueryRootExpressionExtractor
 {
     public static EntityQueryRootExpression? Extract(Expression expression)
     {

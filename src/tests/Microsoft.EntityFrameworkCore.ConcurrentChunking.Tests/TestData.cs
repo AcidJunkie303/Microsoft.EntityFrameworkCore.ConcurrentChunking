@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Entities;
+
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
 
 internal static class TestData
@@ -29,14 +31,14 @@ internal static class TestData
 
     private static void InitializeDbContext()
     {
-        using var ctx = new MyDbContext();
+        using var ctx = new TestDbContext();
 
         if (ctx.SimpleEntities.Count() == EntityCount)
         {
             return;
         }
 
-        ctx.SimpleEntities.ExecuteDelete();
+        ctx.SimpleEntities.RemoveRange(ctx.SimpleEntities.ToList());
 
         for (var i = 1; i <= EntityCount; i++)
         {

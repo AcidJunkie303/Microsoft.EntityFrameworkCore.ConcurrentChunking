@@ -1,8 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
 
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Support;
 
 internal sealed class XunitLoggerFactory : ILoggerFactory
 {
@@ -22,6 +21,14 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
         return new XunitLogger(_outputHelper, _scopeProvider, categoryName);
     }
 
+    public ILogger<T> CreateLogger<T>() => new XunitLogger<T>(_outputHelper, _scopeProvider, typeof(T).Name);
+
+    public ILogger<T> CreateLogger<T>(T obj)
+    {
+        ArgumentNullException.ThrowIfNull(obj);
+        return new XunitLogger<T>(_outputHelper, _scopeProvider, obj.GetType().Name);
+    }
+
     public void AddProvider(ILoggerProvider provider)
     {
         // No-op: this factory only supports its own logger provider.
@@ -29,15 +36,15 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
 
     public void Dispose() => _disposed = true;
 
-    private sealed class XunitLogger : ILogger
+    private class XunitLogger : ILogger
     {
-        private readonly ITestOutputHelper _outputHelper;
+        private readonly ITestOutputHelper _testOutputHelper;
         private readonly LoggerExternalScopeProvider _scopeProvider;
         private readonly string _categoryName;
 
-        public XunitLogger(ITestOutputHelper outputHelper, LoggerExternalScopeProvider scopeProvider, string categoryName)
+        public XunitLogger(ITestOutputHelper testOutputHelper, LoggerExternalScopeProvider scopeProvider, string categoryName)
         {
-            _outputHelper = outputHelper;
+            _testOutputHelper = testOutputHelper;
             _scopeProvider = scopeProvider;
             _categoryName = categoryName;
         }
@@ -66,7 +73,7 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
             _scopeProvider.ForEachScope((scope, sb) => sb.Append($"\n => {scope}"), new StringBuilder(message));
 #pragma warning restore CA1305
 
-            _outputHelper.WriteLine(message);
+            _testOutputHelper.WriteLine(message);
         }
 
         private static string GetLogLevelString(LogLevel logLevel)
@@ -81,6 +88,14 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
                 LogLevel.Critical    => "crit",
                 _                    => throw new ArgumentOutOfRangeException(nameof(logLevel))
             };
+        }
+    }
+
+    private sealed class XunitLogger<T> : XunitLogger, ILogger<T>
+    {
+        public XunitLogger(ITestOutputHelper testOutputHelper, LoggerExternalScopeProvider scopeProvider, string categoryName)
+            : base(testOutputHelper, scopeProvider, categoryName)
+        {
         }
     }
 }

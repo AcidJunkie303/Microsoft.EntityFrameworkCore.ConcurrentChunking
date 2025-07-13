@@ -14,17 +14,16 @@ public static class OrderedQueryableExtensions
     )
         where TEntity : class
         where TDbContext : DbContext
-    {
-        return LoadChunkedAsync
+        => LoadChunkedAsync
         (
-            query,
-            dbContextFactory.CreateDbContext,
-            chunkSize,
-            maxDegreeOfParallelism,
-            ChunkedEntityLoaderOptions.None,
-            null,
-            CancellationToken.None);
-    }
+            query: query,
+            dbContextFactory: dbContextFactory.CreateDbContext,
+            chunkSize: chunkSize,
+            maxDegreeOfParallelism: maxDegreeOfParallelism,
+            options: ChunkedEntityLoaderOptions.None,
+            loggerFactory: null,
+            cancellationToken: CancellationToken.None
+        );
 
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
@@ -35,7 +34,16 @@ public static class OrderedQueryableExtensions
     )
         where TEntity : class
         where TDbContext : DbContext
-        => LoadChunkedAsync(query, dbContextFactory, chunkSize, maxDegreeOfParallelism, ChunkedEntityLoaderOptions.None, null, CancellationToken.None);
+        => LoadChunkedAsync
+        (
+            query: query,
+            dbContextFactory: dbContextFactory,
+            chunkSize: chunkSize,
+            maxDegreeOfParallelism: maxDegreeOfParallelism,
+            options: ChunkedEntityLoaderOptions.None,
+            loggerFactory: null,
+            cancellationToken: CancellationToken.None
+        );
 
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
@@ -49,7 +57,16 @@ public static class OrderedQueryableExtensions
     )
         where TEntity : class
         where TDbContext : DbContext
-        => LoadChunkedAsync(query, dbContextFactory.CreateDbContext, chunkSize, maxDegreeOfParallelism, options, loggerFactory, cancellationToken);
+        => LoadChunkedAsync
+        (
+            query,
+            dbContextFactory.CreateDbContext,
+            chunkSize,
+            maxDegreeOfParallelism,
+            options,
+            loggerFactory,
+            cancellationToken
+        );
 
     public static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
@@ -64,12 +81,8 @@ public static class OrderedQueryableExtensions
         where TEntity : class
         where TDbContext : DbContext
     {
-        var entityQueryRootExpression = EntityQueryRootExpressionExtractor.Extract(query.Expression);
-        if (entityQueryRootExpression is null)
-        {
-            throw new IOException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
-        }
-
+        var entityQueryRootExpression = EntityQueryRootExpressionExtractor.Extract(query.Expression)
+                                        ?? throw new IOException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
         await using var newDbContext = dbContextFactory();
         var rootEntityType = entityQueryRootExpression.EntityType.ClrType;
         var untypedDbSetFactory = DbSetAccessor.Get(newDbContext, rootEntityType);
@@ -93,7 +106,12 @@ public static class OrderedQueryableExtensions
         }
     }
 
-    private static IOrderedQueryable<TEntity> CreateQueryOnNewDbContext<TDbContext, TEntity>(TDbContext dbContext, IQueryable<TEntity> sourceQuery, Func<DbContext, DbSet<TEntity>> dbSetFactory)
+    private static IOrderedQueryable<TEntity> CreateQueryOnNewDbContext<TDbContext, TEntity>
+    (
+        TDbContext dbContext,
+        IQueryable<TEntity> sourceQuery,
+        Func<DbContext, DbSet<TEntity>> dbSetFactory
+    )
         where TDbContext : DbContext
         where TEntity : class
     {

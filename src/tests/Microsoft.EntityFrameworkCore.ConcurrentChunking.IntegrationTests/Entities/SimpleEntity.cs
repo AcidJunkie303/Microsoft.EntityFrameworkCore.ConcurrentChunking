@@ -1,4 +1,4 @@
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Entities;
 
 internal sealed record SimpleEntity(
     int Id,

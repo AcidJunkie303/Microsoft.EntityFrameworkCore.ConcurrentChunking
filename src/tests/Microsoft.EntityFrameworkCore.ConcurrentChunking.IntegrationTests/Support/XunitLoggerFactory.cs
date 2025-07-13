@@ -1,16 +1,16 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
-using Xunit.Abstractions;
+using Xunit;
 
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Support;
 
-internal sealed class XUnitLoggerFactory : ILoggerFactory
+internal sealed class XunitLoggerFactory : ILoggerFactory
 {
     private readonly ITestOutputHelper _outputHelper;
     private readonly LoggerExternalScopeProvider _scopeProvider = new();
     private bool _disposed;
 
-    public XUnitLoggerFactory(ITestOutputHelper outputHelper)
+    public XunitLoggerFactory(ITestOutputHelper outputHelper)
     {
         _outputHelper = outputHelper ?? throw new ArgumentNullException(nameof(outputHelper));
     }
@@ -22,12 +22,12 @@ internal sealed class XUnitLoggerFactory : ILoggerFactory
         return new XunitLogger(_outputHelper, _scopeProvider, categoryName);
     }
 
-    public ILogger<T> CreateLogger<T>() => new XunitLogger<T>(_outputHelper, _scopeProvider, typeof(T).FullName ?? "Unknown");
+    public ILogger<T> CreateLogger<T>() => new XunitLogger<T>(_outputHelper, _scopeProvider, typeof(T).Name);
 
     public ILogger<T> CreateLogger<T>(T obj)
     {
         ArgumentNullException.ThrowIfNull(obj);
-        return new XunitLogger<T>(_outputHelper, _scopeProvider, obj.GetType().FullName ?? "Unknown");
+        return new XunitLogger<T>(_outputHelper, _scopeProvider, obj.GetType().Name);
     }
 
     public void AddProvider(ILoggerProvider provider)

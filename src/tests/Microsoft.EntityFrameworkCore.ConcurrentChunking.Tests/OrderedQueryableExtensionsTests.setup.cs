@@ -1,10 +1,10 @@
-﻿using Xunit.Abstractions;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Support;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
 
 public sealed partial class OrderedQueryableExtensionsTests : IDisposable
 {
-    private readonly XUnitLoggerFactory _loggerFactory;
+    private readonly XunitLoggerFactory _loggerFactory;
 
     static OrderedQueryableExtensionsTests()
     {
@@ -13,7 +13,7 @@ public sealed partial class OrderedQueryableExtensionsTests : IDisposable
 
     public OrderedQueryableExtensionsTests(ITestOutputHelper testOutputHelper)
     {
-        _loggerFactory = new XUnitLoggerFactory(testOutputHelper);
+        _loggerFactory = new XunitLoggerFactory(testOutputHelper);
     }
 
     public void Dispose() => _loggerFactory.Dispose();

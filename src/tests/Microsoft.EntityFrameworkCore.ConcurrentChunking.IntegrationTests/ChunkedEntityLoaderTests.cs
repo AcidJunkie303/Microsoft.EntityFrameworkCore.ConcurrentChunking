@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Entities;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Entities;
 using Shouldly;
+using Xunit;
 
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests;
 
 public sealed partial class ChunkedEntityLoaderTests
 {
@@ -10,7 +11,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         await using var ctx = new TestDbContext();
         var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
-        count.ShouldBe(EntityCount);
+        count.ShouldBe(TestData.EntityCount);
     }
 
     [Fact]
@@ -18,7 +19,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new TestDbContext();
-        using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 4, options: ChunkedEntityLoaderOptions.None);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, options: ChunkedEntityLoaderOptions.None);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
@@ -32,7 +33,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new TestDbContext();
-        using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 4, options: ChunkedEntityLoaderOptions.None);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, options: ChunkedEntityLoaderOptions.None);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
@@ -40,9 +41,9 @@ public sealed partial class ChunkedEntityLoaderTests
         var uniqueIds = items.Select(a => a.Id).ToHashSet();
 
         // assert
-        items.Count.ShouldBe(EntityCount);
+        items.Count.ShouldBe(TestData.EntityCount);
 
-        for (var i = 1; i <= EntityCount; i++)
+        for (var i = 1; i <= TestData.EntityCount; i++)
         {
             uniqueIds.Contains(i).ShouldBeTrue($"Id {i} is missing from the retrieved items.");
         }
@@ -55,14 +56,14 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new TestDbContext();
-        using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 4, options: options);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, options: options);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
         var items = chunks.SelectMany(a => a.Entities).ToList();
 
         // assert
-        items.Count.ShouldBe(EntityCount);
+        items.Count.ShouldBe(TestData.EntityCount);
 
         // The likelihood that the chunks are not sequential is pretty high when the ordering is not enforced (especially when the last chunk is much smaller than the chunk size).
         // Therefore, we assume that the chunks are not sequential.
