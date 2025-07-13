@@ -6,10 +6,27 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
+/// <summary>
+/// Provides extension methods for chunked asynchronous loading of entities from a queryable source.
+/// </summary>
 [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used", Justification = "This would result is a lot of overloads.")]
 [SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
 public static class QueryableExtensions
 {
+    /// <summary>
+    /// Loads entities in chunks asynchronously using a database context factory.
+    /// </summary>
+    /// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
+    /// <typeparam name="TDbContext">The type of the database context.</typeparam>
+    /// <param name="query">The queryable source of entities.</param>
+    /// <param name="dbContextFactory">The factory to create database contexts.</param>
+    /// <param name="chunkSize">The size of each chunk.</param>
+    /// <param name="maxDegreeOfParallelism">The maximum number of concurrent producers.</param>
+    /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
+    /// <param name="options">Options for the chunked entity loader.</param>
+    /// <param name="loggerFactory">Optional logger factory.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
         this IQueryable<TEntity> query,
@@ -35,6 +52,20 @@ public static class QueryableExtensions
             cancellationToken
         );
 
+    /// <summary>
+    /// Loads entities in chunks asynchronously using a function to create database contexts.
+    /// </summary>
+    /// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
+    /// <typeparam name="TDbContext">The type of the database context.</typeparam>
+    /// <param name="query">The queryable source of entities.</param>
+    /// <param name="dbContextFactory">The function to create database contexts.</param>
+    /// <param name="chunkSize">The size of each chunk.</param>
+    /// <param name="maxDegreeOfParallelism">The maximum number of concurrent producers.</param>
+    /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
+    /// <param name="options">Options for the chunked entity loader.</param>
+    /// <param name="loggerFactory">Optional logger factory.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
     public static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
         this IQueryable<TEntity> query,
@@ -52,7 +83,7 @@ public static class QueryableExtensions
         EnsureIsOrderedQuery(query.Expression);
 
         var entityQueryRootExpression = EntityQueryRootExpressionExtractor.Extract(query.Expression)
-                                        ?? throw new IOException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
+                                        ?? throw new InvalidOperationException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
         await using var newDbContext = dbContextFactory();
         var rootEntityType = entityQueryRootExpression.EntityType.ClrType;
 

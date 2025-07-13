@@ -6,6 +6,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
+/// <summary>
+///     A loader that retrieves entities from a database in chunks, allowing concurrent processing.
+/// </summary>
+/// <typeparam name="TDbContext">The type of the database context.</typeparam>
+/// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
 [SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
 public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoader<TEntity>
     where TDbContext : DbContext
@@ -22,6 +27,18 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _chunkSize;
 
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="ChunkedEntityLoader{TDbContext, TEntity}" /> class using an
+    ///     <see cref="IDbContextFactory{TDbContext}" />.
+    /// </summary>
+    /// <param name="dbContextFactory">Factory to create database contexts.</param>
+    /// <param name="chunkSize">The size of each chunk.</param>
+    /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers.</param>
+    /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch.</param>
+    /// <param name="sourceQueryProvider">Function to provide the query for retrieving entities.</param>
+    /// <param name="options">Loader options.</param>
+    /// <param name="loggerFactory">Optional logger factory.</param>
+    /// <param name="logger">Optional logger.</param>
     [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used")]
     public ChunkedEntityLoader
     (
@@ -48,6 +65,18 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     {
     }
 
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="ChunkedEntityLoader{TDbContext, TEntity}" /> class using a function to
+    ///     create database contexts.
+    /// </summary>
+    /// <param name="dbContextFactory">Function to create database contexts.</param>
+    /// <param name="chunkSize">The size of each chunk.</param>
+    /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers.</param>
+    /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch.</param>
+    /// <param name="sourceQueryProvider">Function to provide the query for retrieving entities.</param>
+    /// <param name="options">Loader options.</param>
+    /// <param name="loggerFactory">Optional logger factory.</param>
+    /// <param name="logger">Optional logger.</param>
     [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used")]
     public ChunkedEntityLoader
     (
@@ -77,6 +106,11 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         _channel = Channel.CreateBounded<Chunk<TEntity>>(channelOptions);
     }
 
+    /// <summary>
+    ///     Asynchronously loads entities in chunks.
+    /// </summary>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>An asynchronous enumerable of chunks.</returns>
     public async IAsyncEnumerable<Chunk<TEntity>> LoadAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var producersTask = StartProducersAsync(cancellationToken);
@@ -91,6 +125,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         await producersTask;
     }
 
+    /// <summary>
+    ///     Disposes resources used by the loader.
+    /// </summary>
     public void Dispose()
     {
         _producerLimiterSemaphore.Dispose();
