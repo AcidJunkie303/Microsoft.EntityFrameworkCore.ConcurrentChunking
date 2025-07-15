@@ -14,7 +14,5 @@
   </Folder>
   <Project Path="Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection.csproj" Type="Classic C#" />
   <Project Path="Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj" Type="Classic C#" />
-  <Project Path="Playground\Playground.csproj" Type="Classic C#">
-    <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
-  </Project>
+  <Project Path="Playground\Playground.csproj" Type="Classic C#" />
 </Solution>
