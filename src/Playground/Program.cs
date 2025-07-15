@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
-using Playground.Logging;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 
 namespace Playground;
 
@@ -75,7 +75,7 @@ internal static class Program
 
         await foreach (var chunk in chunks)
         {
-            foreach(var entity in chunk.Entities)
+            foreach (var entity in chunk.Entities)
             {
                 // do domething here
             }

@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <IsTestProject>true</IsTestProject>
-        <TargetFrameworks>net9.0</TargetFrameworks>
         <NoWarn>$(NoWarn);RCS1046;CA1707;S4017</NoWarn>
         <OutputType>Exe</OutputType>
     </PropertyGroup>
@@ -13,13 +12,12 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7"/>
-        <PackageReference Include="Testcontainers" Version="4.6.0"/>
-        <PackageReference Include="Testcontainers.MsSql" Version="4.6.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.7"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj"/>
+        <ProjectReference Include="..\..\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection.csproj"/>
         <ProjectReference Include="..\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.csproj"/>
     </ItemGroup>
 

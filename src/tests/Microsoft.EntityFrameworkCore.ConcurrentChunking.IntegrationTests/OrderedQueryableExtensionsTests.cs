@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Entities;
-using Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Support;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 using Shouldly;
-using Xunit;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests;
 

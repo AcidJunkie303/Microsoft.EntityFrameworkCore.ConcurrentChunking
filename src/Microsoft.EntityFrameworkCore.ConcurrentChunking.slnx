@@ -7,9 +7,14 @@
     <File Path="..\README.md" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection.Tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection.Tests.csproj" Type="Classic C#" />
     <Project Path="tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests\Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.csproj" Type="Classic C#" />
+    <Project Path="tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.csproj" Type="Classic C#" />
     <Project Path="tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests\Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.csproj" Type="Classic C#" />
   </Folder>
+  <Project Path="Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection.csproj" Type="Classic C#" />
   <Project Path="Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj" Type="Classic C#" />
-  <Project Path="Playground\Playground.csproj" Type="Classic C#" />
+  <Project Path="Playground\Playground.csproj" Type="Classic C#">
+    <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
+  </Project>
 </Solution>
