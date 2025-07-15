@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
-using Playground.Logging;
 
 namespace Playground;
 
@@ -70,12 +69,12 @@ internal static class Program
                              maxDegreeOfParallelism: 5,
                              maxPrefetchCount: 10,
                              options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
-                             loggerFactory: new ConsoleLoggerFactory()
+                             loggerFactory: null
                          );
 
         await foreach (var chunk in chunks)
         {
-            foreach(var entity in chunk.Entities)
+            foreach (var entity in chunk.Entities)
             {
                 // do domething here
             }

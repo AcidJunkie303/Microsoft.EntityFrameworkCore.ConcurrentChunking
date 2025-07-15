@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Entities;
-using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Support;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Entities;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
 

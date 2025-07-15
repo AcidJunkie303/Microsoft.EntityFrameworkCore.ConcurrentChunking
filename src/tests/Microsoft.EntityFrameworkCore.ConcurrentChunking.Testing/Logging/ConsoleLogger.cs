@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 
-namespace Playground.Logging;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 
-internal class ConsoleLogger : ILogger
+public class ConsoleLogger : ILogger
 {
     private readonly string _categoryName;
 
@@ -56,7 +56,7 @@ internal class ConsoleLogger : ILogger
     }
 }
 
-internal sealed class ConsoleLogger<T> : ConsoleLogger, ILogger<T>
+public sealed class ConsoleLogger<T> : ConsoleLogger, ILogger<T>
 {
     public ConsoleLogger() : base(typeof(T).Name)
     {

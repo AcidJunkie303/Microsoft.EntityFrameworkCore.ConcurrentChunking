@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.7"/>
     </ItemGroup>
 
@@ -17,6 +17,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj"/>
+        <ProjectReference Include="..\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.csproj"/>
     </ItemGroup>
 
 </Project>

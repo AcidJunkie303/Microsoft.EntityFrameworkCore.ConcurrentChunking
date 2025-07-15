@@ -1,9 +1,10 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Xunit;
 
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Support;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 
-internal sealed class XunitLoggerFactory : ILoggerFactory
+public sealed class XunitLoggerFactory : ILoggerFactory
 {
     private readonly ITestOutputHelper _outputHelper;
     private readonly LoggerExternalScopeProvider _scopeProvider = new();
@@ -49,7 +50,7 @@ internal sealed class XunitLoggerFactory : ILoggerFactory
             _categoryName = categoryName;
         }
 
-        public IDisposable? BeginScope<TState>(TState state)
+        public IDisposable BeginScope<TState>(TState state)
             where TState : notnull
             => _scopeProvider.Push(state);
 
