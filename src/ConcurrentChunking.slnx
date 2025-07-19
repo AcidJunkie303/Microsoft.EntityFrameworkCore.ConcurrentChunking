@@ -1,39 +1,22 @@
 ﻿<Solution>
-    <Folder Name="/Solution Files/">
-        <File Path=".editorconfig"/>
-        <File Path="BannedSymbols.txt"/>
-        <File Path="Directory.Build.props"/>
-        <File Path="ConcurrentChunking.slnx"/>
-        <File Path="..\README.md"/>
-    </Folder>
-    <Folder Name="/Tests/">
-        <Project
-            Path="tests\ConcurrentChunking.Linq.IntegrationTests\ConcurrentChunking.Linq.IntegrationTests.csproj"
-            Type="Classic C#"/>
-        <Project
-            Path="tests\ConcurrentChunking.DependencyInjection.Tests\ConcurrentChunking.DependencyInjection.Tests.csproj"
-            Type="Classic C#"/>
-        <Project
-            Path="tests\ConcurrentChunking.IntegrationTests\ConcurrentChunking.IntegrationTests.csproj"
-            Type="Classic C#"/>
-        <Project
-            Path="tests\ConcurrentChunking.Linq.Tests\ConcurrentChunking.Linq.Tests.csproj"
-            Type="Classic C#"/>
-        <Project
-            Path="tests\ConcurrentChunking.Testing\ConcurrentChunking.Testing.csproj"
-            Type="Classic C#"/>
-        <Project
-            Path="tests\ConcurrentChunking.Tests\ConcurrentChunking.Tests.csproj"
-            Type="Classic C#"/>
-    </Folder>
-    <Project
-        Path="ConcurrentChunking.DependencyInjection\ConcurrentChunking.DependencyInjection.csproj"
-        Type="Classic C#"/>
-    <Project
-        Path="ConcurrentChunking.Linq\ConcurrentChunking.Linq.csproj"
-        Type="Classic C#"/>
-    <Project
-        Path="ConcurrentChunking\ConcurrentChunking.csproj"
-        Type="Classic C#"/>
-    <Project Path="Playground\Playground.csproj" Type="Classic C#"/>
+  <Folder Name="/Solution Files/">
+    <File Path=".editorconfig" />
+    <File Path="BannedSymbols.txt" />
+    <File Path="Directory.Build.props" />
+    <File Path="ConcurrentChunking.slnx" />
+    <File Path="..\README.md" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests\ConcurrentChunking.DependencyInjection.Tests\ConcurrentChunking.DependencyInjection.Tests.csproj" Type="Classic C#" />
+    <Project Path="tests\ConcurrentChunking.IntegrationTests\ConcurrentChunking.IntegrationTests.csproj" Type="Classic C#" />
+    <Project Path="tests\ConcurrentChunking.Linq.IntegrationTests\ConcurrentChunking.Linq.IntegrationTests.csproj" Type="Classic C#" />
+    <Project Path="tests\ConcurrentChunking.Linq.Tests\ConcurrentChunking.Linq.Tests.csproj" Type="Classic C#" />
+    <Project Path="tests\ConcurrentChunking.Testing\ConcurrentChunking.Testing.csproj" Type="Classic C#" />
+    <Project Path="tests\ConcurrentChunking.Tests\ConcurrentChunking.Tests.csproj" Type="Classic C#" />
+  </Folder>
+  <Project Path="ConcurrentChunking.DependencyInjection\ConcurrentChunking.DependencyInjection.csproj" Type="Classic C#" />
+  <Project Path="ConcurrentChunking.Linq\ConcurrentChunking.Linq.csproj" Type="Classic C#" />
+  <Project Path="ConcurrentChunking\ConcurrentChunking.csproj" Type="Classic C#" />
+  <Project Path="PlaygroundWithNugetPackage\PlaygroundWithNugetPackage.csproj" Type="Classic C#" />
+  <Project Path="Playground\Playground.csproj" Type="Classic C#" />
 </Solution>

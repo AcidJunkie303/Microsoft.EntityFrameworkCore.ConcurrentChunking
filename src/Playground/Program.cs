@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
+using Playground.Logging;
 
 namespace Playground;
 
@@ -9,6 +10,24 @@ internal static class Program
 {
     private static async Task Main()
     {
+        using var consoleLoggerFactory = new ConsoleLoggerFactory();
+        await using var ctx = new SqlServerDbContext();
+
+        var chunks = await ctx.SimpleEntities
+                              .OrderBy(a=>a.Id)
+                              .LoadChunkedAsync(
+                                   () => new SqlServerDbContext(),
+                                   chunkSize: 100_000,
+                                   maxConcurrentProducerCount: 5,
+                                   maxPrefetchCount: 5,
+                                   options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
+                                   loggerFactory: consoleLoggerFactory
+                               )
+                              .ToListAsync();
+
+        Console.WriteLine($"Retrieved {chunks.Count} chunks.");
+
+        /*
         InitializeDbContext();
 
         await DocSample1();
@@ -31,30 +50,7 @@ internal static class Program
                                      options: ChunkedEntityLoaderOptions.PreserveChunkOrder
                                  )
                                 .ToListAsync();
-    }
-
-    private static void InitializeDbContext()
-    {
-        const int entityCount = 100_001;
-
-        using var ctx = new TestDbContext();
-
-        if (ctx.SimpleEntities.Any())
-        {
-            return;
-        }
-
-        for (var i = 0; i < entityCount; i++)
-        {
-            var entity = new SimpleEntity
-            {
-                Id = i,
-                Value = $"Entity {i}"
-            };
-            ctx.SimpleEntities.Add(entity);
-        }
-
-        ctx.SaveChanges();
+                                */
     }
 
     private static async Task DocSample1()

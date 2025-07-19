@@ -177,22 +177,33 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
     private async Task ProduceAsync(int chunkIndex, CancellationToken cancellationToken)
     {
-        await using var context = _dbContextFactory();
-        var query = _sourceQueryProvider(context);
-        var startIndex = chunkIndex * _chunkSize;
+        try
+        {
+            await using var context = _dbContextFactory();
+            var query = _sourceQueryProvider(context);
+            var startIndex = chunkIndex * _chunkSize;
 
-        _logger?.LogTrace("Producing chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName}", chunkIndex, startIndex, EntityTypeName);
+            _logger?.LogTrace("Producing chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName}", chunkIndex, startIndex, EntityTypeName);
 
-        var startedTimestamp = Stopwatch.GetTimestamp();
-        var entities = await query
-                            .Skip(startIndex)
-                            .Take(_chunkSize)
-                            .ToListAsync(cancellationToken);
+            var startedTimestamp = Stopwatch.GetTimestamp();
+            var entities = await query
+                                .Skip(startIndex)
+                                .Take(_chunkSize)
+                                .ToListAsync(cancellationToken);
 
-        _logger?.LogTrace("Produced chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName} with {EntityCount} entities in {DurationInMs} ms.", chunkIndex, startIndex, EntityTypeName, entities.Count, (int) Stopwatch.GetElapsedTime(startedTimestamp).TotalMilliseconds);
+            _logger?.LogTrace("Produced chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName} with {EntityCount} entities in {DurationInMs} ms.", chunkIndex, startIndex, EntityTypeName, entities.Count, (int) Stopwatch.GetElapsedTime(startedTimestamp).TotalMilliseconds);
 
-        var chunk = new Chunk<TEntity>(chunkIndex, entities);
-        await _channel.Writer.WriteAsync(chunk, cancellationToken);
+            var chunk = new Chunk<TEntity>(chunkIndex, entities);
+            await _channel.Writer.WriteAsync(chunk, cancellationToken);
+        }
+#pragma warning disable S2139
+        catch (Exception ex)
+#pragma warning restore S2139
+        {
+            _logger?.LogError(ex, "Error producing chunk #{ChunkIndex} for EntityTypeName={EntityTypeName}.", chunkIndex, EntityTypeName);
+            throw;
+        }
+
     }
 
     private IChannelReader<TEntity> CreateChannelReader()

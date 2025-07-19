@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Playground;
+namespace PlaygroundWithNugetPackage;
 
 public sealed record SimpleEntity(
     int Id,
