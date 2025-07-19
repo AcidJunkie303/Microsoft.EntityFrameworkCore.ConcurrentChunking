@@ -10,9 +10,6 @@ on:
 jobs:
   build-test-pack-publish:
     runs-on: windows-latest
-    strategy:
-      matrix:
-        dotnet-version: [ '8.0.x', '9.0.x' ]
 
     steps:
       - name: Checkout code
@@ -21,21 +18,25 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: '9.0.x'
 
       - name: Restore dependencies
         run: dotnet restore
+        working-directory: ./src
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
+        working-directory: ./src
 
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: ./src
 
       - name: Pack NuGet package
-        if: matrix.dotnet-version == '8.0.x'
         run: dotnet pack --no-build --configuration Release --output ./nupkgs
+        working-directory: ./src
 
       - name: Publish to NuGet
-        if: matrix.dotnet-version == '8.0.x' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
+        working-directory: ./src
