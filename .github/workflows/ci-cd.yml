@@ -25,15 +25,31 @@ jobs:
         working-directory: ./src
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release /p:VersionSuffix=$CI_PIPELINE_ID
+        run: dotnet build --no-restore --configuration Release /p:Version=1.0.0.$GITHUB_RUN_NUMBER
         working-directory: ./src
 
-      - name: Test
+      - name: "Test: ConcurrentChunking.Tests"
         run: dotnet test --no-build --configuration Release --verbosity normal
-        working-directory: ./src
+        working-directory: ./src/tests/ConcurrentChunking.Tests
+
+      - name: "Test: ConcurrentChunking.DependencyInjection.Tests"
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: ./src/tests/ConcurrentChunking.DependencyInjection.Tests
+
+      - name: "Test: ConcurrentChunking.Linq.Tests"
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: ./src/tests/ConcurrentChunking.Linq.Tests
+
+      - name: "Test: ConcurrentChunking.IntegrationTests"
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: ./src/tests/ConcurrentChunking.IntegrationTests
+
+      - name: "Test: ConcurrentChunking.Linq.IntegrationTests"
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: ./src/tests/ConcurrentChunking.Linq.IntegrationTests
 
       - name: Pack NuGet package
-        run: dotnet pack --no-build --configuration Release --output ./nupkgs --version-suffix alpha1
+        run: dotnet pack --no-build --configuration Release --output ./nupkgs --version 1.0.0.$GITHUB_RUN_NUMBER --version-suffix alpha1
         working-directory: ./src
 
       - name: Publish to NuGet
