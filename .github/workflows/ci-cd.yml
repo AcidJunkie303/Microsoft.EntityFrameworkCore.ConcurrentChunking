@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-test-pack-publish:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest #windows-latest
 
     steps:
       - name: Checkout code
@@ -25,7 +25,7 @@ jobs:
         working-directory: ./src
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: dotnet build --no-restore --configuration Release /p:VersionSuffix=$CI_PIPELINE_ID
         working-directory: ./src
 
       - name: Test
@@ -33,7 +33,7 @@ jobs:
         working-directory: ./src
 
       - name: Pack NuGet package
-        run: dotnet pack --no-build --configuration Release --output ./nupkgs
+        run: dotnet pack --no-build --configuration Release --output ./nupkgs --version-suffix alpha1
         working-directory: ./src
 
       - name: Publish to NuGet

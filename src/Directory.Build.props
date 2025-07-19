@@ -63,7 +63,7 @@
         <SignAssembly>false</SignAssembly>
         <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <Version>1.0.0</Version>
+        <Version>0.0.0</Version>
         <WarningLevel>9999</WarningLevel>
         <RootNamespace>Microsoft.EntityFrameworkCore.$(ProjectName)</RootNamespace>
     </PropertyGroup>
