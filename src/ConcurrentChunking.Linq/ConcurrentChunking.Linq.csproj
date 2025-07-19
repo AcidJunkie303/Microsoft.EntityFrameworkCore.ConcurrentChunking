@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>true</IsPackable>
+        <NoWarn>$(NoWarn);CA1515</NoWarn>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageId>Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq</PackageId>
+        <Product>Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq</Product>
+        <Description>
+            Allows parallel and pre-emptive loading of entities in a chunk-wise manner, resulting in much faster data access over time. This package provides LINQ extension methods for the ConcurrentChunking library.
+        </Description>
+        <IncludeSymbols>true</IncludeSymbols>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ConcurrentChunking\ConcurrentChunking.csproj"/>
+    </ItemGroup>
+
+</Project>

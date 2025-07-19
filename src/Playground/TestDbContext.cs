@@ -8,7 +8,7 @@ internal sealed class TestDbContext : DbContext
                                                                      .UseInMemoryDatabase("TestDb")
                                                                      .Options;
 
-    public DbSet<TestEntity> TestEntities { get; set; } = null!;
+    public DbSet<SimpleEntity> SimpleEntities { get; set; } = null!;
 
     public TestDbContext() : base(Options)
     {
@@ -18,7 +18,7 @@ internal sealed class TestDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TestEntity>()
+        modelBuilder.Entity<SimpleEntity>()
                     .Property(e => e.Id)
                     .ValueGeneratedNever();
     }

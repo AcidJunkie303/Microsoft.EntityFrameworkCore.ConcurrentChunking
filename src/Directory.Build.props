@@ -36,20 +36,36 @@
         <!-- MA0026: We know TODO items should be tackled, let's not create Errors for them -->
         <!-- S1185:  We know TODO items should be tackled, let's not create Errors for them -->
         <WarningsNotAsErrors>MA0025;MA0026</WarningsNotAsErrors>
-        <WarningLevel>9999</WarningLevel>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <EnableNETAnalyzers>true</EnableNETAnalyzers>
-        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+
+        <PackageReleaseNotes>
+            1.0.0
+            - Initial version
+        </PackageReleaseNotes>
+
         <AnalysisLevel>latest</AnalysisLevel>
+        <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+        <Authors>AcidJunkie303</Authors>
+        <Company>AcidJunkie303</Company>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
         <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-        <LangVersion>13.0</LangVersion>
-        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <ImplicitUsings>enable</ImplicitUsings>
         <IsPackable>false</IsPackable>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <LangVersion>13.0</LangVersion>
+        <Nullable>enable</Nullable>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/AcidJunkie303/Microsoft.EntityFrameworkCore.ConcurrentChunking</PackageProjectUrl>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <PackageTags>entity framework chunking</PackageTags>
+        <RepositoryType>GitHub</RepositoryType>
+        <RepositoryUrl>https://github.com/AcidJunkie303/Microsoft.EntityFrameworkCore.ConcurrentChunking</RepositoryUrl>
         <SignAssembly>false</SignAssembly>
         <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <Version>0.0.0</Version>
+        <WarningLevel>9999</WarningLevel>
+        <RootNamespace>Microsoft.EntityFrameworkCore.$(ProjectName)</RootNamespace>
     </PropertyGroup>
 
     <!-- C# Analyzers -->
@@ -58,7 +74,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.13.0.120203">
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.14.0.120626">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
@@ -78,34 +94,28 @@
 
     <ItemGroup>
         <PackageReference Include="Ardalis.GuardClauses" Version="5.0.0"/>
-    </ItemGroup>
-    <ItemGroup>
         <AdditionalFiles Include="$(SolutionDir)BannedSymbols.txt"/>
+        <None Include="$(SolutionDir)LICENSE.txt">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+        <None Include="$(SolutionDir)icon.png">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
     </ItemGroup>
 
     <!-- Unit testing -->
     <ItemGroup Condition="'$(IsTestProject)' == 'true'">
         <PackageReference Include="Shouldly" Version="4.3.0"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
-        <!--
-        <PackageReference Include="xunit" Version="2.9.3"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1" privateAssets="all"/>
-        <PackageReference Include="xunit.v3.runner.console" Version="2.0.3"/>
-        -->
-        <PackageReference Include="xunit.v3" Version="2.0.3"/>
-        <!--
-                <PackageReference Include="xunit.v3.runner.common" Version="2.0.3"/>
-            -->
-        <PackageReference Include="xunit.analyzers" Version="1.22.0">
+        <PackageReference Include="xunit.v3" Version="3.0.0"/>
+        <PackageReference Include="xunit.v3.common" Version="3.0.0"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.3" privateAssets="all"/>
+        <PackageReference Include="xunit.analyzers" Version="1.23.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3.common" Version="2.0.3"/>
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1" privateAssets="all"/>
-
-        <!--
-        <PackageReference Include="xunit.v3.runner.inproc.console" Version="2.0.3"/>
-        -->
         <PackageReference Include="JunitXml.TestLogger" Version="6.1.0"/>
         <PackageReference Include="coverlet.collector" Version="6.0.4">
             <PrivateAssets>all</PrivateAssets>

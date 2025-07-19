@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
 
 namespace Playground;
 
@@ -17,7 +18,7 @@ internal static class Program
         // do your test stuff here
         await using var ctx = new TestDbContext();
 
-        var entities = await ctx.TestEntities
+        var entities = await ctx.SimpleEntities
                                 .Where(a => a.Id < 1000)
                                 .OrderByDescending(a => a.Id)
                                 .Select(a => new { Bla = a.Id, a.Value })
@@ -25,7 +26,7 @@ internal static class Program
                                  (
                                      dbContextFactory: () => new TestDbContext(),
                                      chunkSize: 10,
-                                     maxDegreeOfParallelism: 5,
+                                     maxConcurrentProducerCount: 5,
                                      maxPrefetchCount: 10,
                                      options: ChunkedEntityLoaderOptions.PreserveChunkOrder
                                  )
@@ -38,19 +39,19 @@ internal static class Program
 
         using var ctx = new TestDbContext();
 
-        if (ctx.TestEntities.Any())
+        if (ctx.SimpleEntities.Any())
         {
             return;
         }
 
         for (var i = 0; i < entityCount; i++)
         {
-            var entity = new TestEntity
+            var entity = new SimpleEntity
             {
                 Id = i,
                 Value = $"Entity {i}"
             };
-            ctx.TestEntities.Add(entity);
+            ctx.SimpleEntities.Add(entity);
         }
 
         ctx.SaveChanges();
@@ -60,13 +61,13 @@ internal static class Program
     {
         await using var ctx = new TestDbContext();
 
-        var chunks = ctx.TestEntities
+        var chunks = ctx.SimpleEntities
                         .OrderByDescending(a => a.Id)
                         .LoadChunkedAsync
                          (
                              dbContextFactory: () => new TestDbContext(),
                              chunkSize: 1_000,
-                             maxDegreeOfParallelism: 5,
+                             maxConcurrentProducerCount: 5,
                              maxPrefetchCount: 10,
                              options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
                              loggerFactory: null

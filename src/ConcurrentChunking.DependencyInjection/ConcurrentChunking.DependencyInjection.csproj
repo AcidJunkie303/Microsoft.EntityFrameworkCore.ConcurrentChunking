@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>true</IsPackable>
+        <NoWarn>$(NoWarn);CA1515</NoWarn>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageId>Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection</PackageId>
+        <Product>Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection</Product>
+        <Description>
+            Allows parallel and pre-emptive loading of entities in a chunk-wise manner, resulting in much faster data access over time. This package provides dependency injection support for the ConcurrentChunking library.
+        </Description>
+        <IncludeSymbols>true</IncludeSymbols>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="9.0.7"/>
+
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ConcurrentChunking\ConcurrentChunking.csproj"/>
+    </ItemGroup>
+
+</Project>
