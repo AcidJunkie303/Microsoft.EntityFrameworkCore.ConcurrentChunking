@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7"/>
+        <PackageReference Include="System.Linq.Async" Version="6.0.3"/>
     </ItemGroup>
 
     <ItemGroup>

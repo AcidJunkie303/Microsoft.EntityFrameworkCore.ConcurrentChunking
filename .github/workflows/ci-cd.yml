@@ -25,7 +25,7 @@ jobs:
         working-directory: ./src
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release /p:Version=1.0.0.$GITHUB_RUN_NUMBER
+        run: dotnet build --no-restore --configuration Release /p:Version=0.0.0.$GITHUB_RUN_NUMBER
         working-directory: ./src
       
       # Integration tests should not run in parallel as it would cause issues with the shared MS SQL docker container.
@@ -51,7 +51,7 @@ jobs:
 #        working-directory: ./src/tests/ConcurrentChunking.Linq.IntegrationTests
 
       - name: Pack NuGet package
-        run: dotnet pack --no-build --configuration Release --version 0.0.0.$GITHUB_RUN_NUMBER --version-suffix alpha1
+        run: dotnet pack --no-build --configuration Release --version 1.0.0-pre-release.$GITHUB_RUN_NUMBER.
         working-directory: ./src
 
       - name: Publish to NuGet
