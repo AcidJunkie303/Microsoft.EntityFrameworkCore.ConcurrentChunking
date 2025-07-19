@@ -4,7 +4,7 @@
         <IsPackable>true</IsPackable>
         <NoWarn>$(NoWarn);CA1515</NoWarn>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <PackageId>EntityFrameworkCore.ConcurrentChunking</PackageId>
         <Product>EntityFrameworkCore.ConcurrentChunking</Product>
         <Description>
