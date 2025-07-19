@@ -19,7 +19,7 @@ public sealed partial class OrderedQueryableExtensionsTests
                           .LoadChunkedAsync(
                                dbContextFactory: () => new InMemoryDbContext(),
                                chunkSize: 10_000,
-                               maxDegreeOfParallelism: 2,
+                               maxConcurrentProducerCount: 2,
                                maxPrefetchCount: 3,
                                options: ChunkedEntityLoaderOptions.None,
                                loggerFactory: _loggerFactory,
@@ -54,7 +54,7 @@ public sealed partial class OrderedQueryableExtensionsTests
                           .LoadChunkedAsync(
                                () => new InMemoryDbContext(),
                                10_000,
-                               maxDegreeOfParallelism: 2,
+                               maxConcurrentProducerCount: 2,
                                maxPrefetchCount: 3,
                                options,
                                _loggerFactory,

@@ -4,18 +4,9 @@ using Shouldly;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq.IntegrationTests;
 
-public sealed class OrderedQueryableExtensionsTests : IDisposable
+public sealed partial class OrderedQueryableExtensionsTests : IDisposable
 {
     // for the LINQ extensions, we check only if we can retrieve all items from the context in parallel with the copied IQueryable<T> object.
-
-    private readonly ITestOutputHelper _testOutputHelper;
-    private readonly XunitLoggerFactory _loggerFactory;
-
-    public OrderedQueryableExtensionsTests(ITestOutputHelper testOutputHelper)
-    {
-        _testOutputHelper = testOutputHelper;
-        _loggerFactory = new XunitLoggerFactory(testOutputHelper);
-    }
 
     [Fact]
     public async Task LoadChunkedAsync_EnsureAllItemsHaveBeenRetrieved()
@@ -32,7 +23,7 @@ public sealed class OrderedQueryableExtensionsTests : IDisposable
                           .LoadChunkedAsync(
                                dbContextFactory: () => new SqlServerDbContext(),
                                chunkSize: 33_333,
-                               maxDegreeOfParallelism: 2,
+                               maxConcurrentProducerCount: 2,
                                maxPrefetchCount: 4,
                                options: ChunkedEntityLoaderOptions.None,
                                loggerFactory: loggerFactory,
@@ -50,6 +41,4 @@ public sealed class OrderedQueryableExtensionsTests : IDisposable
             uniqueIds.Contains(i).ShouldBeTrue($"Id {i} is missing from the retrieved items.");
         }
     }
-
-    public void Dispose() => _loggerFactory.Dispose();
 }

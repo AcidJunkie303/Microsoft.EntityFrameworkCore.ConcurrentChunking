@@ -42,7 +42,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new SqlServerDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 5, maxPrefetchCount: 3, options: options);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 6, maxPrefetchCount: 6, options: options);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);

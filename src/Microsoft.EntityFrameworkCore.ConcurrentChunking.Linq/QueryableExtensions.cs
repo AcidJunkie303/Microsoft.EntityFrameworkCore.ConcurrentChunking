@@ -20,7 +20,7 @@ public static class QueryableExtensions
     /// <param name="query">The queryable source of entities.</param>
     /// <param name="dbContextFactory">The factory to create database contexts.</param>
     /// <param name="chunkSize">The size of each chunk.</param>
-    /// <param name="maxDegreeOfParallelism">The maximum number of concurrent producers.</param>
+    /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
@@ -31,7 +31,7 @@ public static class QueryableExtensions
         this IQueryable<TEntity> query,
         IDbContextFactory<TDbContext> dbContextFactory,
         int chunkSize,
-        int maxDegreeOfParallelism,
+        int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
         ILoggerFactory? loggerFactory = null,
@@ -44,7 +44,7 @@ public static class QueryableExtensions
             query,
             dbContextFactory.CreateDbContext,
             chunkSize,
-            maxDegreeOfParallelism,
+            maxConcurrentProducerCount,
             maxPrefetchCount,
             options,
             loggerFactory,
@@ -59,7 +59,7 @@ public static class QueryableExtensions
     /// <param name="query">The queryable source of entities.</param>
     /// <param name="dbContextFactory">The function to create database contexts.</param>
     /// <param name="chunkSize">The size of each chunk.</param>
-    /// <param name="maxDegreeOfParallelism">The maximum number of concurrent producers.</param>
+    /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
@@ -71,7 +71,7 @@ public static class QueryableExtensions
         this IQueryable<TEntity> query,
         Func<TDbContext> dbContextFactory,
         int chunkSize,
-        int maxDegreeOfParallelism,
+        int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
         ILoggerFactory? loggerFactory = null,
@@ -91,7 +91,7 @@ public static class QueryableExtensions
         (
             dbContextFactory: new DbContextFactoryForFunc<TDbContext>(dbContextFactory),
             chunkSize: chunkSize,
-            maxConcurrentProducerCount: maxDegreeOfParallelism,
+            maxConcurrentProducerCount: maxConcurrentProducerCount,
             maxPrefetchCount: maxPrefetchCount,
             sourceQueryProvider: ctx => CloneQueryToDbContext(ctx, rootEntityType, query),
             options: options,

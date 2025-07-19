@@ -39,7 +39,7 @@ public class ServiceProviderExtensionsTests
         var services = new ServiceCollection();
         services.AddSingleton(_testOutputHelper);
         services.AddSingleton<ILoggerFactory, XunitLoggerFactory>();
-        services.AddSingleton(typeof(ILogger<>), typeof(ConsoleLogger<>));
+        services.AddSingleton(typeof(ILogger<>), typeof(XunitLogger<>));
         services.AddDbContextFactory<InMemoryDbContext>(options => options.UseInMemoryDatabase("TestDb"));
         services.AddChunkedEntityLoaderFactory();
 
