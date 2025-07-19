@@ -70,6 +70,7 @@
 
     <!-- C# Analyzers -->
     <ItemGroup>
+        <PackageReference Include="Ardalis.GuardClauses" Version="5.0.0"/>
         <PackageReference Include="Meziantou.Analyzer" Version="2.0.205">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
@@ -93,7 +94,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Ardalis.GuardClauses" Version="5.0.0"/>
         <AdditionalFiles Include="$(SolutionDir)BannedSymbols.txt"/>
         <None Include="$(SolutionDir)LICENSE.txt">
             <Pack>True</Pack>
@@ -103,6 +103,7 @@
             <Pack>True</Pack>
             <PackagePath></PackagePath>
         </None>
+        <None Include="$(SolutionDir)../README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <!-- Unit testing -->
