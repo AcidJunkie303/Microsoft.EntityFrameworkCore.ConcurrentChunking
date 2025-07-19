@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection.Tests.Entities;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,13 +10,16 @@ public class ServiceProviderExtensionsTests
 {
     private readonly ITestOutputHelper _testOutputHelper;
 
-    public ServiceProviderExtensionsTests(ITestOutputHelper testOutputHelper) => _testOutputHelper = testOutputHelper;
+    public ServiceProviderExtensionsTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
 
     [Fact]
     public async Task AddChunkedEntityLoaderFactory_Full()
     {
         await using var services = CreateServiceCollection();
-        var chunkedEntityLoaderFactory = services.GetRequiredService<IChunkedEntityLoaderFactory<TestDbContext>>();
+        var chunkedEntityLoaderFactory = services.GetRequiredService<IChunkedEntityLoaderFactory<InMemoryDbContext>>();
 
         var chunkedLoader = chunkedEntityLoaderFactory.Create(
             1_000,
@@ -37,7 +40,7 @@ public class ServiceProviderExtensionsTests
         services.AddSingleton(_testOutputHelper);
         services.AddSingleton<ILoggerFactory, XunitLoggerFactory>();
         services.AddSingleton(typeof(ILogger<>), typeof(ConsoleLogger<>));
-        services.AddDbContextFactory<TestDbContext>(options => options.UseInMemoryDatabase("TestDb"));
+        services.AddDbContextFactory<InMemoryDbContext>(options => options.UseInMemoryDatabase("TestDb"));
         services.AddChunkedEntityLoaderFactory();
 
         return services.BuildServiceProvider();

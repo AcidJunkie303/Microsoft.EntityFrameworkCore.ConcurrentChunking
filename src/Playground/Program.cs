@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
 
 namespace Playground;
 

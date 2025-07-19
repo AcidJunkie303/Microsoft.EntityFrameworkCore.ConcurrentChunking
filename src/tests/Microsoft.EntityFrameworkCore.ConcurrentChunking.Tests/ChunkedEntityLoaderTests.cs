@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests.Entities;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 using Shouldly;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
@@ -8,7 +8,7 @@ public sealed partial class ChunkedEntityLoaderTests
     [Fact]
     public async Task CheckSetup()
     {
-        await using var ctx = new TestDbContext();
+        await using var ctx = new InMemoryDbContext();
         var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
         count.ShouldBe(EntityCount);
     }
@@ -17,7 +17,7 @@ public sealed partial class ChunkedEntityLoaderTests
     public async Task LoadAsync_WhenThen()
     {
         // arrange
-        await using var ctx = new TestDbContext();
+        await using var ctx = new InMemoryDbContext();
         using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: ChunkedEntityLoaderOptions.None);
 
         // act
@@ -31,7 +31,7 @@ public sealed partial class ChunkedEntityLoaderTests
     public async Task LoadChunkedAsync_EnsureAllItemsHaveBeenRetrieved()
     {
         // arrange
-        await using var ctx = new TestDbContext();
+        await using var ctx = new InMemoryDbContext();
         using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: ChunkedEntityLoaderOptions.None);
 
         // act
@@ -54,7 +54,7 @@ public sealed partial class ChunkedEntityLoaderTests
     public async Task LoadChunkedAsync_CheckChunkOrdering(ChunkedEntityLoaderOptions options, bool expectSequentialOrder)
     {
         // arrange
-        await using var ctx = new TestDbContext();
+        await using var ctx = new InMemoryDbContext();
         using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: options);
 
         // act

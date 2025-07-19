@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests.Entities;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests;
@@ -17,7 +17,7 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
     private static bool IsChunkOrderSequential<T>(in List<Chunk<T>> chunks)
         => !chunks.Where((chunk, i) => chunk.ChunkIndex != i).Any();
 
-    private ChunkedEntityLoader<TestDbContext, SimpleEntity> CreateLoader
+    private ChunkedEntityLoader<SqlServerDbContext, SimpleEntity> CreateLoader
     (
         int chunkSize,
         int maxConcurrentProducerCount,
@@ -25,15 +25,15 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
         ChunkedEntityLoaderOptions options
     )
     {
-        return new ChunkedEntityLoader<TestDbContext, SimpleEntity>(
-            dbContextFactory: new TestDbContextFactory(),
+        return new ChunkedEntityLoader<SqlServerDbContext, SimpleEntity>(
+            dbContextFactory: new SqlServerDbContextFactory(),
             chunkSize: chunkSize,
             maxConcurrentProducerCount: maxConcurrentProducerCount,
             maxPrefetchCount: maxPrefetchCount,
             sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id),
             options: options,
             loggerFactory: _loggerFactory,
-            logger: _loggerFactory.CreateLogger<ChunkedEntityLoader<TestDbContext, SimpleEntity>>()
+            logger: _loggerFactory.CreateLogger<ChunkedEntityLoader<SqlServerDbContext, SimpleEntity>>()
         );
     }
 }

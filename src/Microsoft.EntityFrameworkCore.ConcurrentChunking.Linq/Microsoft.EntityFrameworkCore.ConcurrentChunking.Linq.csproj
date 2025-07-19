@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>true</IsPackable>
+        <NoWarn>$(NoWarn);CA1515</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj"/>
+    </ItemGroup>
+
+</Project>
