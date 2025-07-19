@@ -14,7 +14,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Microsoft.EntityFrameworkCore.ConcurrentChunking\Microsoft.EntityFrameworkCore.ConcurrentChunking.csproj"/>
+        <ProjectReference Include="..\ConcurrentChunking\ConcurrentChunking.csproj"/>
     </ItemGroup>
 
 </Project>

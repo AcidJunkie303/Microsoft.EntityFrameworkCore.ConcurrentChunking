@@ -17,8 +17,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection\Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection.csproj"/>
-        <ProjectReference Include="..\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing\Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.csproj"/>
+        <ProjectReference Include="..\..\ConcurrentChunking.DependencyInjection\ConcurrentChunking.DependencyInjection.csproj"/>
+        <ProjectReference Include="..\ConcurrentChunking.Testing\ConcurrentChunking.Testing.csproj"/>
     </ItemGroup>
 
 </Project>
