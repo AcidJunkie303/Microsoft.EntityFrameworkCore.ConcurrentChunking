@@ -27,7 +27,9 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release /p:Version=1.0.0.$GITHUB_RUN_NUMBER
         working-directory: ./src
-
+      
+      # Integration tests should not run in parallel as it would cause issues with the shared MS SQL docker container.
+      # Therefore, we run them sequentially.
       - name: "Test: ConcurrentChunking.Tests"
         run: dotnet test --no-build --configuration Release --verbosity normal
         working-directory: ./src/tests/ConcurrentChunking.Tests
@@ -54,5 +56,5 @@ jobs:
 
       - name: Publish to NuGet
         if: github.ref == 'refs/heads/main'
-        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
+        run: dotnet nuget push ./**/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
         working-directory: ./src
