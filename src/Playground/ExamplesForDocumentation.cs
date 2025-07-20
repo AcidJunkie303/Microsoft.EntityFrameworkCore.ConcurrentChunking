@@ -13,8 +13,7 @@ internal static class ExamplesForDocumentation
             chunkSize: 100_000,
             maxConcurrentProducerCount: 3,
             maxPrefetchCount: 5,
-            sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id),
-            options: ChunkedEntityLoaderOptions.PreserveChunkOrder
+            sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id)
         );
 
         await foreach (var chunk in loader.LoadAsync(CancellationToken.None))
@@ -34,8 +33,7 @@ using var loader = factory.Create(
     chunkSize: 100_000,
     maxConcurrentProducerCount: 3,
     maxPrefetchCount: 5,
-    sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id),
-    options: ChunkedEntityLoaderOptions.PreserveChunkOrder
+    sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id)
 );
 
 await foreach (var chunk in loader.LoadAsync(CancellationToken.None))

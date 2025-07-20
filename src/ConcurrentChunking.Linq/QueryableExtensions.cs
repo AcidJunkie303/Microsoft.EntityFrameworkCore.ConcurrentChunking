@@ -33,7 +33,7 @@ public static class QueryableExtensions
         int chunkSize,
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
-        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
+        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
     )
@@ -73,7 +73,7 @@ public static class QueryableExtensions
         int chunkSize,
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
-        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
+        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILoggerFactory? loggerFactory = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default
     )

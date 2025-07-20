@@ -47,7 +47,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
+        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILoggerFactory? loggerFactory = null,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
@@ -85,7 +85,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
+        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILoggerFactory? loggerFactory = null,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
@@ -122,7 +122,15 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             yield return chunk;
         }
 
-        await producersTask;
+        try
+        {
+            await producersTask;
+        }
+        catch (ChannelClosedException) when (_channel.Reader.Completion.IsFaulted)
+        {
+            await _channel.Reader.Completion;
+            throw;
+        }
     }
 
     /// <summary>
@@ -138,29 +146,38 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     {
         await Task.Yield();
 
-        var entityCount = await GetExpectedEntityCoundAsync();
-        var chunkCount = (int) (entityCount / _chunkSize) + (entityCount % _chunkSize > 0 ? 1 : 0);
-
-        _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
-            EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, entityCount, chunkCount);
-
-        var tasks = new List<Task>(chunkCount);
-
-        for (var i = 0; i < chunkCount; i++)
+        try
         {
-            var currentChunkIndex = i;
+            var entityCount = await GetExpectedEntityCoundAsync();
+            var chunkCount = (int) (entityCount / _chunkSize) + (entityCount % _chunkSize > 0 ? 1 : 0);
 
-            await _prefetchLimiterSemaphore.WaitAsync(cancellationToken);
-            await _producerLimiterSemaphore.WaitAsync(cancellationToken);
+            _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
+                EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, entityCount, chunkCount);
 
-            var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), cancellationToken); // we do not await this task to allow concurrent production
-            tasks.Add(task);
+            var tasks = new List<Task>(chunkCount);
+
+            for (var i = 0; i < chunkCount; i++)
+            {
+                var currentChunkIndex = i;
+
+                await _prefetchLimiterSemaphore.WaitAsync(cancellationToken);
+                await _producerLimiterSemaphore.WaitAsync(cancellationToken);
+
+                var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), cancellationToken); // we do not await this task to allow concurrent production
+                tasks.Add(task);
+            }
+
+            await Task.WhenAll(tasks);
+
+            await _channel.Writer.WriteAsync(Chunk<TEntity>.TerminatingChunk, cancellationToken);
+            _channel.Writer.Complete();
         }
-
-        await Task.WhenAll(tasks);
-
-        await _channel.Writer.WriteAsync(Chunk<TEntity>.TerminatingChunk, cancellationToken);
-        _channel.Writer.Complete();
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Exception in StartProducersAsync.");
+            _channel.Writer.Complete(ex);
+            throw;
+        }
     }
 
     private async Task ProduceAndReleaseSemaphoreAsync(int chunkIndex, CancellationToken cancellationToken)
@@ -200,10 +217,10 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         catch (Exception ex)
 #pragma warning restore S2139
         {
+            _prefetchLimiterSemaphore.Release(); // required, otherwise LoadAsync() would hang indefinitely
             _logger?.LogError(ex, "Error producing chunk #{ChunkIndex} for EntityTypeName={EntityTypeName}.", chunkIndex, EntityTypeName);
             throw;
         }
-
     }
 
     private IChannelReader<TEntity> CreateChannelReader()

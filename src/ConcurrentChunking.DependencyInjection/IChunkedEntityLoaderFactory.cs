@@ -28,7 +28,7 @@ public interface IChunkedEntityLoaderFactory<out TDbContext>
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.None,
+        ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         bool useLogging = true
     )
         where TEntity : class;

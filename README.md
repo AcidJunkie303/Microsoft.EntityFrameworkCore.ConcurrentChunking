@@ -1,7 +1,6 @@
-# Microsoft.EntityFrameworkCore.ConcurrentChunking
+# Concurrent Chunking support for Entity Framework Core
 
-If retrieving large collections of entities from Entity Framework is taking a long time,
-this library enables parallel and pre-emptive loading of entities, resulting in much faster data access over time.
+If retrieving large collections of objects from Entity Framework — especially when using multiple `Include()` and `ThenInclude()` statements — takes a long time, this library enables parallel and pre-emptive loading of entities. This results in significantly faster data access.
 
 # Examples
 

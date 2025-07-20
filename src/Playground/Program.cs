@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
 using Playground.Logging;
 
@@ -13,19 +14,27 @@ internal static class Program
         using var consoleLoggerFactory = new ConsoleLoggerFactory();
         await using var ctx = new SqlServerDbContext();
 
-        var chunks = await ctx.SimpleEntities
-                              .OrderBy(a=>a.Id)
-                              .LoadChunkedAsync(
-                                   () => new SqlServerDbContext(),
-                                   chunkSize: 100_000,
-                                   maxConcurrentProducerCount: 5,
-                                   maxPrefetchCount: 5,
-                                   options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
-                                   loggerFactory: consoleLoggerFactory
-                               )
-                              .ToListAsync();
+        try
+        {
+            var chunks = await ctx.SimpleEntities
+                                  .OrderBy(a => a.Id)
+                                  .AsNoTracking()
+                                  .LoadChunkedAsync(
+                                       () => new SqlServerDbContext(),
+                                       chunkSize: 100_000,
+                                       maxConcurrentProducerCount: 5,
+                                       maxPrefetchCount: 5,
+                                       options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
+                                       loggerFactory: consoleLoggerFactory
+                                   )
+                                  .ToListAsync();
 
-        Console.WriteLine($"Retrieved {chunks.Count} chunks.");
+            Console.WriteLine($"Retrieved {chunks.Count} chunks with total {chunks.Sum(a => a.Entities.Count)} entities.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
 
         /*
         InitializeDbContext();
@@ -55,13 +64,18 @@ internal static class Program
 
     private static async Task DocSample1()
     {
-        await using var ctx = new TestDbContext();
+        await using var ctx = new SqlServerDbContext();
 
         var chunks = ctx.SimpleEntities
-                        .OrderByDescending(a => a.Id)
+                        .OrderByDescending(a => a.Value2)
                         .LoadChunkedAsync
                          (
-                             dbContextFactory: () => new TestDbContext(),
+                             dbContextFactory: () =>
+                             {
+                                 var db = new SqlServerDbContext();
+                                 db.Database.SetCommandTimeout(3);
+                                 return db;
+                             },
                              chunkSize: 1_000,
                              maxConcurrentProducerCount: 5,
                              maxPrefetchCount: 10,
@@ -73,7 +87,7 @@ internal static class Program
         {
             foreach (var entity in chunk.Entities)
             {
-                // do domething here
+                // do something here
             }
         }
     }
