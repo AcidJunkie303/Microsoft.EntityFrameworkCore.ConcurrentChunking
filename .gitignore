@@ -1,0 +1,13 @@
+*.user
+.vs
+.idea/*
+obj
+bin
+usage.statistics.xml
+workspace.xml
+!.idea/codeStyles/
+!.idea/dictionaries/
+!.idea/runConfigurations/
+!.idea/vcs.xml
+!.idea/misc.xml
+!.idea/modules.xml

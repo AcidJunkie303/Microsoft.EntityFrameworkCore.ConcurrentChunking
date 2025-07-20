@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>true</IsPackable>
+        <NoWarn>$(NoWarn);CA1515</NoWarn>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageId>EntityFrameworkCore.ConcurrentChunking</PackageId>
+        <Product>EntityFrameworkCore.ConcurrentChunking</Product>
+        <Description>
+            Allows parallel and pre-emptive loading of entities in a chunk-wise manner, resulting in much faster data access over time.
+        </Description>
+        <IncludeSymbols>true</IncludeSymbols>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="9.0.7"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7"/>
+    </ItemGroup>
+
+</Project>
+
