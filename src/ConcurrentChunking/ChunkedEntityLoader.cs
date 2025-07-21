@@ -21,11 +21,14 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly ChunkedEntityLoaderOptions _options;
     private readonly ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? _logger;
     private readonly ILoggerFactory? _loggerFactory;
-    private readonly Channel<Chunk<TEntity>> _channel;
+    private readonly Channel<object?> _channel;
     private readonly Func<TDbContext> _dbContextFactory;
     private readonly SemaphoreSlim _producerLimiterSemaphore;
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _chunkSize;
+
+    private int _errorCount;
+    private bool HasErrors => _errorCount > 0;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="ChunkedEntityLoader{TDbContext, TEntity}" /> class using an
@@ -103,7 +106,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         {
             FullMode = BoundedChannelFullMode.Wait
         };
-        _channel = Channel.CreateBounded<Chunk<TEntity>>(channelOptions);
+        _channel = Channel.CreateBounded<object?>(channelOptions);
     }
 
     /// <summary>
@@ -156,7 +159,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
             var tasks = new List<Task>(chunkCount);
 
-            for (var i = 0; i < chunkCount; i++)
+            for (var i = 0; i < chunkCount && !HasErrors; i++)
             {
                 var currentChunkIndex = i;
 
@@ -169,11 +172,12 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
             await Task.WhenAll(tasks);
 
-            await _channel.Writer.WriteAsync(Chunk<TEntity>.TerminatingChunk, cancellationToken);
+            await _channel.Writer.WriteAsync(null, cancellationToken);
             _channel.Writer.Complete();
         }
         catch (Exception ex)
         {
+            Interlocked.Increment(ref _errorCount);
             _logger?.LogError(ex, "Exception in StartProducersAsync.");
             _channel.Writer.Complete(ex);
             throw;
@@ -217,6 +221,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         catch (Exception ex)
 #pragma warning restore S2139
         {
+            Interlocked.Increment(ref _errorCount);
             _prefetchLimiterSemaphore.Release(); // required, otherwise LoadAsync() would hang indefinitely
             _logger?.LogError(ex, "Error producing chunk #{ChunkIndex} for EntityTypeName={EntityTypeName}.", chunkIndex, EntityTypeName);
             throw;
