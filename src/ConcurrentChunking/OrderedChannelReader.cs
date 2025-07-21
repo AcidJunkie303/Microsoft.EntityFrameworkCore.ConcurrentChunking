@@ -6,11 +6,11 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
 internal sealed class OrderedChannelReader<TEntity> : IChannelReader<TEntity>
 {
-    private readonly ChannelReader<Chunk<TEntity>> _channelReader;
+    private readonly ChannelReader<object?> _channelReader;
     private readonly ILogger<OrderedChannelReader<TEntity>>? _logger;
     private readonly Dictionary<int, Chunk<TEntity>> _pendingChunksByIndex = [];
 
-    public OrderedChannelReader(ChannelReader<Chunk<TEntity>> channelReader, ILogger<OrderedChannelReader<TEntity>>? logger)
+    public OrderedChannelReader(ChannelReader<object?> channelReader, ILogger<OrderedChannelReader<TEntity>>? logger)
     {
         _channelReader = channelReader;
         _logger = logger;
@@ -32,24 +32,34 @@ internal sealed class OrderedChannelReader<TEntity> : IChannelReader<TEntity>
                 continue; // start over because we may have more buffered chunks
             }
 
-            var chunk = await _channelReader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            if (chunk.IsTerminatingChunk)
+            var item = await _channelReader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            switch (item)
             {
-                _logger?.LogTrace("Received terminating chunk which indicates completion.");
-                yield break;
-            }
+                case null:
+                    _logger?.LogTrace("Received null from channel which indicates completion.");
+                    yield break;
 
-            if (chunk.ChunkIndex == expectedIndex)
-            {
-                _logger?.LogTrace("Returning chunk with index {ChunkIndex}.", chunk.ChunkIndex);
-                yield return chunk;
-                expectedIndex++;
-            }
-            else
-            {
-                // Buffer out-of-order chunk
-                _logger?.LogTrace("Chunk with index {ChunkIndex} was out of order. Moving to buffer.", chunk.ChunkIndex);
-                _pendingChunksByIndex[chunk.ChunkIndex] = chunk;
+                case Chunk<TEntity> chunk:
+                    if (chunk.ChunkIndex == expectedIndex)
+                    {
+                        _logger?.LogTrace("Returning chunk with index {ChunkIndex}.", chunk.ChunkIndex);
+                        yield return chunk;
+                        expectedIndex++;
+                    }
+                    else
+                    {
+                        // Buffer out-of-order chunk
+                        _logger?.LogTrace("Chunk with index {ChunkIndex} was out of order. Moving to buffer.", chunk.ChunkIndex);
+                        _pendingChunksByIndex[chunk.ChunkIndex] = chunk;
+                    }
+
+                    break;
+
+                case Exception ex:
+                    throw new InvalidOperationException("Received exception from producer.", ex);
+
+                default:
+                    throw new InvalidOperationException($"Unexpected item type: {item.GetType().FullName}");
             }
         }
     }
