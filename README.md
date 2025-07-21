@@ -21,6 +21,7 @@ using var loader = new ChunkedEntityLoader<TestDbContext, SimpleEntity>(
     sourceQueryProvider: ctx => ctx.SimpleEntities
         .Include(e => e.RelatedEntity).ThenInclude(e => e.AnotherRelatedEntity)
         .Include(e => e.RelatedEntity2)
+        .AsNoTracking()
         .OrderBy(e => e.Id),
     options: ChunkedEntityLoaderOptions.PreserveChunkOrder
 );
@@ -92,6 +93,7 @@ using var loader = factory.Create(
     sourceQueryProvider: ctx => ctx.SimpleEntities
         .Include(e => e.RelatedEntity).ThenInclude(e => e.AnotherRelatedEntity)
         .Include(e => e.RelatedEntity2)
+        .AsNoTracking()
         .OrderBy(e => e.Id),
     options: ChunkedEntityLoaderOptions.PreserveChunkOrder
 );
