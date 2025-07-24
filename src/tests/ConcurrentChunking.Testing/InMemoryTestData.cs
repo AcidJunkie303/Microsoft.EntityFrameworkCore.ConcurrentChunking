@@ -4,12 +4,11 @@ using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing;
 
 [SuppressMessage("Performance", "MA0158:Use System.Threading.Lock", Justification = "we support both, .NET8.0 and .NET9.0")]
-internal static class InMemoryTestData
+public static class InMemoryTestData
 {
-    public const int EntityCount = 10001;
-
     private static bool IsInitialized;
     private static readonly object Lock = new();
+    public static int EntityCount { get; } = 1_000_001;
 
     public static void EnsureInitialized()
     {

@@ -21,12 +21,12 @@ public sealed class XunitLoggerFactory : ILoggerFactory
         return new XunitLogger(_outputHelper, _scopeProvider, categoryName);
     }
 
-    public ILogger<T> CreateLogger<T>() => new XunitLogger<T>(_outputHelper, _scopeProvider, typeof(T).Name);
+    public ILogger<T> CreateLogger<T>() => new XunitLogger<T>(_outputHelper, _scopeProvider);
 
     public ILogger<T> CreateLogger<T>(T obj)
     {
         ArgumentNullException.ThrowIfNull(obj);
-        return new XunitLogger<T>(_outputHelper, _scopeProvider, obj.GetType().Name);
+        return new XunitLogger<T>(_outputHelper, _scopeProvider);
     }
 
     public void AddProvider(ILoggerProvider provider)

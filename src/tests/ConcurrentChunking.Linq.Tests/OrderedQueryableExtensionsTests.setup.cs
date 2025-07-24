@@ -1,9 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq.Tests;
 
 public sealed partial class OrderedQueryableExtensionsTests : IDisposable
 {
+    private static readonly int EntityCount = InMemoryTestData.EntityCount;
     private readonly XunitLoggerFactory _loggerFactory;
 
     public OrderedQueryableExtensionsTests(ITestOutputHelper testOutputHelper)

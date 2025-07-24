@@ -14,25 +14,11 @@ public sealed partial class ChunkedEntityLoaderTests
     }
 
     [Fact]
-    public async Task LoadAsync_WhenThen()
-    {
-        // arrange
-        await using var ctx = new InMemoryDbContext();
-        using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: ChunkedEntityLoaderOptions.None);
-
-        // act
-        var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
-
-        // assert
-        chunks.ShouldNotBeEmpty();
-    }
-
-    [Fact]
     public async Task LoadChunkedAsync_EnsureAllItemsHaveBeenRetrieved()
     {
         // arrange
         await using var ctx = new InMemoryDbContext();
-        using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: ChunkedEntityLoaderOptions.None);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: ChunkedEntityLoaderOptions.None);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
@@ -55,7 +41,7 @@ public sealed partial class ChunkedEntityLoaderTests
     {
         // arrange
         await using var ctx = new InMemoryDbContext();
-        using var sut = CreateLoader(chunkSize: 1000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: options);
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 12, maxPrefetchCount: 12, options: options);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);

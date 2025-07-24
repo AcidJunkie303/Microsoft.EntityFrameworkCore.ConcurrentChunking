@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
 
 public sealed partial class ChunkedEntityLoaderTests : IDisposable
 {
-    private const int EntityCount = 10001;
+    private static readonly int EntityCount = InMemoryTestData.EntityCount;
     private readonly XunitLoggerFactory _loggerFactory;
 
     public ChunkedEntityLoaderTests(ITestOutputHelper testOutputHelper)
@@ -31,7 +32,7 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
             chunkSize: chunkSize,
             maxConcurrentProducerCount: maxConcurrentProducerCount,
             maxPrefetchCount: maxPrefetchCount,
-            sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id),
+            sourceQueryProvider: ctx => ctx.SimpleEntities.AsNoTracking().OrderBy(e => e.Id),
             options: options,
             loggerFactory: _loggerFactory,
             logger: _loggerFactory.CreateLogger<ChunkedEntityLoader<InMemoryDbContext, SimpleEntity>>()

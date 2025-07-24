@@ -7,14 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking" Version="1.0.0-pre-release.12" />
-        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.DependencyInjection" Version="1.0.0-pre-release.12" />
-        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.Linq" Version="1.0.0-pre-release.12" />
+        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking" Version="1.0.0-prerelease.20"/>
+        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.DependencyInjection" Version="1.0.0-prerelease.20"/>
+        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.Linq" Version="1.0.0-prerelease.20"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7"/>
         <PackageReference Include="System.Linq.Async" Version="6.0.3"/>
     </ItemGroup>
-    
+
 </Project>

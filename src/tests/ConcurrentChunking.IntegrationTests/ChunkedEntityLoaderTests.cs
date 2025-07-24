@@ -6,6 +6,8 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.IntegrationTests;
 
 public sealed partial class ChunkedEntityLoaderTests
 {
+    private const string SimulatedExceptionMessage = "Simulated exception during chunk production.";
+
     [Fact]
     public async Task CheckSetup()
     {
@@ -54,5 +56,30 @@ public sealed partial class ChunkedEntityLoaderTests
         // The likelihood that the chunks are not sequential is pretty high when the ordering is not enforced (especially when the last chunk is much smaller than the chunk size).
         // Therefore, we assume that the chunks are not sequential.
         IsChunkOrderSequential(chunks).ShouldBe(expectSequentialOrder);
+    }
+
+    [Fact]
+    public async Task LoadAsync_WhenFailing_ExceptionShouldBeReturned()
+    {
+        // arrange
+        await using var ctx = new SqlServerDbContext();
+        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 3, maxPrefetchCount: 3, options: ChunkedEntityLoaderOptions.PreserveChunkOrder, producingChunkCallback: OnProducingChunk);
+
+        // act
+        var exception = await Record.ExceptionAsync(async () => await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken));
+
+        // assert
+        exception.ShouldNotBeNull();
+        exception.InnerException.ShouldNotBeNull();
+        exception.InnerException.ShouldBeOfType<InvalidOperationException>();
+        exception.InnerException.Message.ShouldBe(SimulatedExceptionMessage);
+
+        void OnProducingChunk(int chunkIndex)
+        {
+            if (chunkIndex == 2)
+            {
+                throw new InvalidOperationException(SimulatedExceptionMessage);
+            }
+        }
     }
 }

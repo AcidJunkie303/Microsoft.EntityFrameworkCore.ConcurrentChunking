@@ -15,6 +15,7 @@ public sealed partial class OrderedQueryableExtensionsTests : IDisposable
         await using var ctx = new SqlServerDbContext();
         using var loggerFactory = new XunitLoggerFactory(_testOutputHelper);
         var baseQuery = ctx.SimpleEntities
+                           .AsNoTracking()
                            .Where(a => a.Id <= 100_001)
                            .OrderBy(a => a.Id);
 

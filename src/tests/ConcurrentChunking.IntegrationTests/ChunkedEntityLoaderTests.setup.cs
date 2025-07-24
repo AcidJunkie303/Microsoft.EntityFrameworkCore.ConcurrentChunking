@@ -22,7 +22,8 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
         int chunkSize,
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
-        ChunkedEntityLoaderOptions options
+        ChunkedEntityLoaderOptions options,
+        Action<int>? producingChunkCallback = null
     )
     {
         return new ChunkedEntityLoader<SqlServerDbContext, SimpleEntity>(
@@ -30,10 +31,13 @@ public sealed partial class ChunkedEntityLoaderTests : IDisposable
             chunkSize: chunkSize,
             maxConcurrentProducerCount: maxConcurrentProducerCount,
             maxPrefetchCount: maxPrefetchCount,
-            sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id),
+            sourceQueryProvider: ctx => ctx.SimpleEntities.AsNoTracking().OrderBy(e => e.Id),
             options: options,
             loggerFactory: _loggerFactory,
             logger: _loggerFactory.CreateLogger<ChunkedEntityLoader<SqlServerDbContext, SimpleEntity>>()
-        );
+        )
+        {
+            OnProducingChunkCallback = producingChunkCallback
+        };
     }
 }

@@ -22,7 +22,7 @@ public class ConsoleLogger : ILogger
             return;
         }
 
-        var message = $"{GetLogLevelString(logLevel)} [{_categoryName}] {formatter(state, exception)}";
+        var message = $"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff'Z'} {GetLogLevelString(logLevel)} [{_categoryName}] {formatter(state, exception)}";
         if (exception != null)
         {
             message += Environment.NewLine + exception;
