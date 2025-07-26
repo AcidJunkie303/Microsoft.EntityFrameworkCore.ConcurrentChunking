@@ -59,7 +59,7 @@ public static class SqlServerTestContainer
         await container.StartAsync(TestContext.Current.CancellationToken);
         WasAlreadyRunning = container.StartedTime.Subtract(DateTimeOffset.UtcNow.DateTime) < TimeSpan.FromSeconds(10);
 
-        await WaitAndEnsureAccessibleAsync(TimeSpan.FromSeconds(30));
+        await WaitAndEnsureAccessibleAsync(TimeSpan.FromMinutes(2));
 
         MsSqlContainer = container;
     }
