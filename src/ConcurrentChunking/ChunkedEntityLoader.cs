@@ -34,7 +34,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         set => Volatile.Write(ref _hasError, value);
     }
 
-    internal Action<int>? OnProducingChunkCallback { get; set; }
+    internal Action<int>? ChunkProductionStarted { get; set; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="ChunkedEntityLoader{TDbContext, TEntity}" /> class using an
@@ -209,7 +209,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             _logger?.LogTrace("Producing chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName}", chunkIndex, startIndex, EntityTypeName);
 
             var startedTimestamp = Stopwatch.GetTimestamp();
-            OnProducingChunkCallback?.Invoke(chunkIndex);
+            ChunkProductionStarted?.Invoke(chunkIndex);
             var entities = await query
                                 .Skip(startIndex)
                                 .Take(_chunkSize)

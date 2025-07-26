@@ -1,6 +1,6 @@
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 
-public sealed class InMemoryDbContext : DbContext
+public sealed class InMemoryDbContext : DbContext, IDbContext
 {
     private static readonly DbContextOptions<InMemoryDbContext> Options = new DbContextOptionsBuilder<InMemoryDbContext>()
                                                                          .UseInMemoryDatabase("TestDb")

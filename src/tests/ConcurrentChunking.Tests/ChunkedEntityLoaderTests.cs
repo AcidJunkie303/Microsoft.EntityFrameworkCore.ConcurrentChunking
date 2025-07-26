@@ -1,57 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
-using Shouldly;
+﻿using ConcurrentChunking.Testing;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Data;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Tests;
 
-public sealed partial class ChunkedEntityLoaderTests
+public sealed class ChunkedEntityLoaderTests : ChunkedEntityLoaderTestBase<InMemoryDbContext, InMemoryTestData>
 {
-    [Fact]
-    public async Task CheckSetup()
+    public ChunkedEntityLoaderTests(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
-        await using var ctx = new InMemoryDbContext();
-        var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
-        count.ShouldBe(EntityCount);
-    }
-
-    [Fact]
-    public async Task LoadChunkedAsync_EnsureAllItemsHaveBeenRetrieved()
-    {
-        // arrange
-        await using var ctx = new InMemoryDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: ChunkedEntityLoaderOptions.None);
-
-        // act
-        var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
-        var items = chunks.SelectMany(a => a.Entities).ToList();
-        var uniqueIds = items.Select(a => a.Id).ToHashSet();
-
-        // assert
-        items.Count.ShouldBe(EntityCount);
-
-        for (var i = 1; i <= EntityCount; i++)
-        {
-            uniqueIds.Contains(i).ShouldBeTrue($"Id {i} is missing from the retrieved items.");
-        }
-    }
-
-    [Theory]
-    [InlineData(ChunkedEntityLoaderOptions.None, false)]
-    [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, true)]
-    public async Task LoadChunkedAsync_CheckChunkOrdering(ChunkedEntityLoaderOptions options, bool expectSequentialOrder)
-    {
-        // arrange
-        await using var ctx = new InMemoryDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 12, maxPrefetchCount: 12, options: options);
-
-        // act
-        var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
-        var items = chunks.SelectMany(a => a.Entities).ToList();
-
-        // assert
-        items.Count.ShouldBe(EntityCount);
-
-        // The likelihood that the chunks are not sequential is pretty high when the ordering is not enforced (especially when the last chunk is much smaller than the chunk size).
-        // Therefore, we assume that the chunks are not sequential.
-        IsChunkOrderSequential(chunks).ShouldBe(expectSequentialOrder);
     }
 }

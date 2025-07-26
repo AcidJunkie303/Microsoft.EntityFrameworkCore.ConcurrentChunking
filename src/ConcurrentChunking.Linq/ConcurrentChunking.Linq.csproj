@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <IsPackable>true</IsPackable>
-        <NoWarn>$(NoWarn);CA1515</NoWarn>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <PackageId>EntityFrameworkCore.ConcurrentChunking.Linq</PackageId>

@@ -5,6 +5,7 @@
     <File Path="Directory.Build.props" />
     <File Path="ConcurrentChunking.slnx" />
     <File Path="..\README.md" />
+    <File Path="Directory.Build.targets" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests\ConcurrentChunking.DependencyInjection.Tests\ConcurrentChunking.DependencyInjection.Tests.csproj" Type="Classic C#" />

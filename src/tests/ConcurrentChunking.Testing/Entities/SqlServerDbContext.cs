@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Containers;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 
-public sealed class SqlServerDbContext : DbContext
+public sealed class SqlServerDbContext : DbContext, IDbContext
 {
     private static readonly DbContextOptions<SqlServerDbContext> Options = new DbContextOptionsBuilder<SqlServerDbContext>().Options;
     public DbSet<SimpleEntity> SimpleEntities { get; set; } = null!;

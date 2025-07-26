@@ -1,17 +1,30 @@
 using System.Data;
 using System.Globalization;
+using ConcurrentChunking.Testing.Support;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 using Xunit;
 
-namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing;
+namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Data;
 
-public static class IntegrationTestData
+public sealed class SqlServerTestData : TestData, ITestData<SqlServerDbContext>
 {
-    public static int EntityCount { get; } = 1_000_001;
-    public static int MaxId { get; } = 1_000_001;
+    private readonly DbContextFactory<SqlServerDbContext> _dbContextFactory = new(() => new SqlServerDbContext());
 
-    public static async Task EnsureTestDataAsync()
+    public static ITestData<SqlServerDbContext> Instance { get; } = new SqlServerTestData();
+
+    public override int EntityCount => 1_000_001;
+    public override int ChunkSize => 100_000;
+
+    private SqlServerTestData()
+    {
+    }
+
+    public IDbContextFactory<SqlServerDbContext> GetDbContextFactory() => _dbContextFactory;
+
+    public SqlServerDbContext CreateDbContext() => _dbContextFactory.CreateDbContext();
+
+    protected override async Task InitializeAsync()
     {
         await using var ctx = new SqlServerDbContext();
 
@@ -23,7 +36,7 @@ public static class IntegrationTestData
         await SeedDatabaseAsync(ctx);
     }
 
-    private static async Task SeedDatabaseAsync(SqlServerDbContext ctx)
+    private async Task SeedDatabaseAsync(SqlServerDbContext ctx)
     {
         await ctx.Database.ExecuteSqlRawAsync("TRUNCATE TABLE dbo.SimpleEntity", TestContext.Current.CancellationToken);
 
@@ -42,17 +55,17 @@ public static class IntegrationTestData
         await sqlBulkCopy.WriteToServerAsync(table);
     }
 
-    private static async Task<bool> IsCompleteAsync(SqlServerDbContext ctx)
+    private async Task<bool> IsCompleteAsync(SqlServerDbContext ctx)
     {
         var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
         var maxId = count > 0
             ? await ctx.SimpleEntities.MaxAsync(a => a.Id, TestContext.Current.CancellationToken)
             : 0;
 
-        return count == MaxId && maxId == MaxId;
+        return count == EntityCount && maxId == EntityCount;
     }
 
-    private static DataTable CreateSimpleEntitiesTable()
+    private DataTable CreateSimpleEntitiesTable()
     {
 #pragma warning disable CA2000
         var table = new DataTable("SimpleEntities")
@@ -68,7 +81,7 @@ public static class IntegrationTestData
         table.Columns.Add("Value4", typeof(string));
         table.Columns.Add("Value5", typeof(string));
 
-        for (var i = 1; i <= MaxId; i++)
+        for (var i = 1; i <= EntityCount; i++)
         {
             table.Rows.Add(i, $"{i} : 1", $"{i} : 2", $"{i} : 3", $"{i} : 4", $"{i} : 5");
         }

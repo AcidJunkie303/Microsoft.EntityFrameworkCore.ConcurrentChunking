@@ -1,3 +1,3 @@
-using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing;
+using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Fixtures;
 
 [assembly: AssemblyFixture(typeof(UnitTestStartupFixture))]
