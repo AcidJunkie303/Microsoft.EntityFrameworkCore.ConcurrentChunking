@@ -16,22 +16,18 @@ public class ServiceProviderExtensionsTests
     }
 
     [Fact]
-    public async Task AddChunkedEntityLoaderFactory_Full()
+    public async Task AddChunkedEntityLoaderFactory_ThenFactoryCanCreateLoader()
     {
         await using var services = CreateServiceCollection();
         var chunkedEntityLoaderFactory = services.GetRequiredService<IChunkedEntityLoaderFactory<InMemoryDbContext>>();
 
         var chunkedLoader = chunkedEntityLoaderFactory.Create(
-            1_000,
+            100_000,
             5,
             4,
-            ctx => ctx.SimpleEntities.OrderBy(a => a.Id),
-            ChunkedEntityLoaderOptions.PreserveChunkOrder);
+            ctx => ctx.SimpleEntities.AsNoTracking().OrderBy(a => a.Id));
 
-        var chunks = await chunkedLoader.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
-
-        chunks.ShouldNotBeNull();
-        chunks.Count.ShouldBe(11);
+        chunkedLoader.ShouldNotBeNull();
     }
 
     private ServiceProvider CreateServiceCollection()

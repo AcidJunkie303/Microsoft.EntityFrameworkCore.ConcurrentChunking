@@ -93,7 +93,7 @@ public static class QueryableExtensions
             chunkSize: chunkSize,
             maxConcurrentProducerCount: maxConcurrentProducerCount,
             maxPrefetchCount: maxPrefetchCount,
-            sourceQueryProvider: ctx => CloneQueryToDbContext(ctx, rootEntityType, query),
+            sourceQueryProvider: ctx => ApplyQueryToDbContext(ctx, rootEntityType, query),
             options: options,
             loggerFactory: loggerFactory,
             logger: loggerFactory?.CreateLogger<ChunkedEntityLoader<TDbContext, TEntity>>()
@@ -115,7 +115,7 @@ public static class QueryableExtensions
         throw new InvalidOperationException($"The query must have a '{nameof(Queryable.OrderBy)}' or '{nameof(Queryable.OrderByDescending)}' clause to ensure consistent chunking.");
     }
 
-    private static IOrderedQueryable<TResultEntity> CloneQueryToDbContext<TResultEntity>(DbContext dbContext, Type entityType, IQueryable<TResultEntity> sourceQuery)
+    private static IOrderedQueryable<TResultEntity> ApplyQueryToDbContext<TResultEntity>(DbContext dbContext, Type entityType, IQueryable<TResultEntity> sourceQuery)
         where TResultEntity : class
     {
         var dbSetAccessor = DbSetAccessorFactory.CreateDbSetAccessor(entityType);

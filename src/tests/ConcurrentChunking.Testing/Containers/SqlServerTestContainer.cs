@@ -58,6 +58,9 @@ public static class SqlServerTestContainer
 
         await container.StartAsync(TestContext.Current.CancellationToken);
         WasAlreadyRunning = container.StartedTime.Subtract(DateTimeOffset.UtcNow.DateTime) < TimeSpan.FromSeconds(10);
+
+        await Task.Delay(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+
         MsSqlContainer = container;
     }
 

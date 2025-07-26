@@ -6,9 +6,19 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 
 public sealed class XunitLogger<T> : XunitLogger, ILogger<T>
 {
-    public XunitLogger(ITestOutputHelper testOutputHelper, LoggerExternalScopeProvider scopeProvider, string categoryName)
-        : base(testOutputHelper, scopeProvider, categoryName)
+    private static readonly string TypeName = GetTypeName();
+
+    public XunitLogger(ITestOutputHelper testOutputHelper, LoggerExternalScopeProvider scopeProvider)
+        : base(testOutputHelper, scopeProvider, TypeName)
     {
+    }
+
+    private static string GetTypeName()
+    {
+        var type = typeof(T);
+        return type.Namespace is null
+            ? type.Name
+            : $"{type.Namespace}.{type.Name}";
     }
 }
 
@@ -38,7 +48,7 @@ public class XunitLogger : ILogger
             return;
         }
 
-        var message = $"{GetLogLevelString(logLevel)} [{_categoryName}] {formatter(state, exception)}";
+        var message = $"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss.fff'Z'} {GetLogLevelString(logLevel)} [{_categoryName}] {formatter(state, exception)}";
         if (exception != null)
         {
             message += Environment.NewLine + exception;

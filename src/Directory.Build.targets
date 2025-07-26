@@ -1,0 +1,8 @@
+<Project>
+
+    <!-- Unit testing -->
+    <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+        <NoWarn>$(NoWarn);RCS1046;CA1707;S4017;CA1515</NoWarn>
+    </PropertyGroup>
+
+</Project>

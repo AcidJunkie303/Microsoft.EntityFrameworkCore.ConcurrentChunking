@@ -30,7 +30,7 @@
         <!-- S1075      Refactor your code not to use hardcoded absolute paths or URIs. -> All diagnostic definitions contain absolute paths. Cannot be changed-->
         <!-- S1312      Logger fields should be "private static readonly -> WTF!?!?!? -->
         <!-- S4462      Use Task.WhenAll -> we don't use async here -->
-        <NoWarn>CA1014;CA1032;CA1034;CA1062;CA1303;CA1848;CA2007;IDE0008;IDE0022;MA0004;MA0045;NU1901;NU1902;NU1903;RCS1004;RCS1061;RCS1205;RCS1112;RCS1194;S1066;S1075;S1135;S1312;S3267;SA1600;S4462;</NoWarn>
+        <NoWarn>CA1014;CA1031;CA1032;CA1034;CA1062;CA1303;CA1848;CA2007;IDE0008;IDE0022;MA0004;MA0045;NU1901;NU1902;NU1903;RCS1004;RCS1061;RCS1205;RCS1112;RCS1194;S1066;S1075;S1135;S1312;S3267;SA1600;S4462;</NoWarn>
 
         <!-- MA0025: NotImplementedException are like TODOs they should be warning only -->
         <!-- MA0026: We know TODO items should be tackled, let's not create Errors for them -->
@@ -69,11 +69,11 @@
 
     <!-- C# Analyzers -->
     <ItemGroup>
-        <PackageReference Include="Meziantou.Analyzer" Version="2.0.205">
+        <PackageReference Include="Meziantou.Analyzer" Version="2.0.206">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.14.0.120626">
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.15.0.120848">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
@@ -91,7 +91,7 @@
         </PackageReference>
     </ItemGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(IsTestProject)' != 'true'">
         <AdditionalFiles Include="$(SolutionDir)BannedSymbols.txt"/>
         <None Include="$(SolutionDir)LICENSE.txt">
             <Pack>True</Pack>
@@ -127,6 +127,8 @@
         <!-- Add default suffix if there is no InternalsVisibleTo or InternalsVisibleToSuffix defined -->
         <ItemGroup Condition="@(InternalsVisibleToSuffix->Count()) == 0 AND @(InternalsVisibleTo->Count()) == 0">
             <InternalsVisibleToSuffix Include=".Tests"/>
+            <InternalsVisibleToSuffix Include=".Testing"/>
+            <InternalsVisibleToSuffix Include=".IntegrationTests"/>
         </ItemGroup>
 
         <!-- Handle InternalsVisibleTo -->

@@ -33,7 +33,9 @@ internal static class Program
         }
         catch (Exception ex)
         {
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(ex);
+            Console.ResetColor();
         }
 
         /*
