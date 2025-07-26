@@ -100,13 +100,21 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
     {
+        ArgumentNullException.ThrowIfNull(dbContextFactory);
+        ArgumentOutOfRangeException.ThrowIfLessThan(chunkSize, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxConcurrentProducerCount, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxPrefetchCount, 1);
+        ArgumentNullException.ThrowIfNull(sourceQueryProvider);
+
         _sourceQueryProvider = sourceQueryProvider;
         _loggerFactory = loggerFactory;
         _options = options;
         _logger = logger;
         _dbContextFactory = dbContextFactory;
         _chunkSize = chunkSize;
-        _producerLimiterSemaphore = new SemaphoreSlim(maxConcurrentProducerCount, maxConcurrentProducerCount);
+
+        var finalMaxConcurrentProducerCount = Math.Min(maxConcurrentProducerCount, maxPrefetchCount);
+        _producerLimiterSemaphore = new SemaphoreSlim(finalMaxConcurrentProducerCount, finalMaxConcurrentProducerCount);
         _prefetchLimiterSemaphore = new SemaphoreSlim(maxPrefetchCount, maxPrefetchCount);
 
         _channel = Channel.CreateUnbounded<object?>();
@@ -192,6 +200,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     {
         try
         {
+            StatisticsMonitor?.IncrementActiveProducer();
             await ProduceAsync(chunkIndex, cancellationToken);
         }
         finally
@@ -203,8 +212,6 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
     private async Task ProduceAsync(int chunkIndex, CancellationToken cancellationToken)
     {
-        StatisticsMonitor?.IncrementActiveProducer();
-
         try
         {
             await using var context = _dbContextFactory();
