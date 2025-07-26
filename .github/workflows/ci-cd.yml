@@ -46,13 +46,13 @@ jobs:
       - name: "Test: ConcurrentChunking.IntegrationTests"
         run: dotnet test --no-build --configuration Release --verbosity normal
         working-directory: ./src/tests/ConcurrentChunking.IntegrationTests
-        
+
       - name: "Test: ConcurrentChunking.Linq.IntegrationTests"
         run: dotnet test --no-build --configuration Release --verbosity normal
         working-directory: ./src/tests/ConcurrentChunking.Linq.IntegrationTests
 
       - name: Pack NuGet package
-        run: dotnet pack --no-build --configuration Release -p:PackageVersion=1.0.0-pre-release.$GITHUB_RUN_NUMBER
+        run: dotnet pack --no-build --configuration Release -p:PackageVersion=1.0.0-prerelease.$GITHUB_RUN_NUMBER
         working-directory: ./src
 
       - name: Publish to NuGet
