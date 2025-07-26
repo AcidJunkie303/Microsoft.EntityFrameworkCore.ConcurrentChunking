@@ -12,9 +12,7 @@ public sealed class SqlServerTestData : TestData, ITestData<SqlServerDbContext>
     private readonly DbContextFactory<SqlServerDbContext> _dbContextFactory = new(() => new SqlServerDbContext());
 
     public static ITestData<SqlServerDbContext> Instance { get; } = new SqlServerTestData();
-
-    public override int EntityCount => 1_000_001;
-    public override int ChunkSize => 100_000;
+    public static int EntityCount => 1_000_001;
 
     private SqlServerTestData()
     {
@@ -36,7 +34,7 @@ public sealed class SqlServerTestData : TestData, ITestData<SqlServerDbContext>
         await SeedDatabaseAsync(ctx);
     }
 
-    private async Task SeedDatabaseAsync(SqlServerDbContext ctx)
+    private static async Task SeedDatabaseAsync(SqlServerDbContext ctx)
     {
         await ctx.Database.ExecuteSqlRawAsync("TRUNCATE TABLE dbo.SimpleEntity", TestContext.Current.CancellationToken);
 
@@ -55,7 +53,7 @@ public sealed class SqlServerTestData : TestData, ITestData<SqlServerDbContext>
         await sqlBulkCopy.WriteToServerAsync(table);
     }
 
-    private async Task<bool> IsCompleteAsync(SqlServerDbContext ctx)
+    private static async Task<bool> IsCompleteAsync(SqlServerDbContext ctx)
     {
         var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
         var maxId = count > 0
@@ -65,7 +63,7 @@ public sealed class SqlServerTestData : TestData, ITestData<SqlServerDbContext>
         return count == EntityCount && maxId == EntityCount;
     }
 
-    private DataTable CreateSimpleEntitiesTable()
+    private static DataTable CreateSimpleEntitiesTable()
     {
 #pragma warning disable CA2000
         var table = new DataTable("SimpleEntities")

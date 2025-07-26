@@ -12,7 +12,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
     where TDbContext : DbContext, IDbContext, new()
     where TTestData : ITestData<TDbContext>
 {
-    private static int EntityCount => TTestData.Instance.EntityCount;
+    private static int EntityCount => TTestData.EntityCount;
 
     protected ChunkedEntityLoaderTestBase(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {
@@ -26,7 +26,8 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
         int chunkSize,
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
-        ChunkedEntityLoaderOptions options
+        ChunkedEntityLoaderOptions options,
+        Func<int, Task>? chunkProductionStartedCallback = null
     )
     {
         return new ChunkedEntityLoader<TDbContext, SimpleEntity>(
@@ -38,6 +39,9 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
             options: options,
             loggerFactory: LoggerFactory,
             logger: LoggerFactory.CreateLogger<ChunkedEntityLoader<TDbContext, SimpleEntity>>()
-        );
+        )
+        {
+            ChunkProductionStarted = chunkProductionStartedCallback
+        };
     }
 }

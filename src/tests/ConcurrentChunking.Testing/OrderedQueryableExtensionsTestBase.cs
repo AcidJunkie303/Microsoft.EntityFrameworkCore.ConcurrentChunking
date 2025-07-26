@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
-using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 using Shouldly;
 using Xunit;
 
@@ -16,10 +15,16 @@ public abstract partial class OrderedQueryableExtensionsTestBase<TDbContext, TTe
         await using var ctx = new TDbContext();
         var baseQuery = ctx.SimpleEntities.OrderBy(a => a.Id);
 
+        var data = await ctx.SimpleEntities.OrderBy(a => a.Id).Take(1000).ToListAsync(TestContext.Current.CancellationToken);
+        var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
+
+        count.ShouldNotBe(0);
+        data.ShouldNotBeNull();
+
         // act
         var chunks = await baseQuery
                           .LoadChunkedAsync(
-                               dbContextFactory: () => new InMemoryDbContext(),
+                               dbContextFactory: () => new TDbContext(),
                                chunkSize: 100_000,
                                maxConcurrentProducerCount: 2,
                                maxPrefetchCount: 3,

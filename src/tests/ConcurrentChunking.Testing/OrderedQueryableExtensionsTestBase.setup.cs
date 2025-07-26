@@ -8,9 +8,9 @@ namespace ConcurrentChunking.Testing;
 
 public abstract partial class OrderedQueryableExtensionsTestBase<TDbContext, TTestData> : TestBase
     where TDbContext : DbContext, IDbContext, new()
-    where TTestData : ITestData<TDbContext>
+    where TTestData : ITestData<TDbContext>, ITestData
 {
-    private static int EntityCount => TTestData.Instance.EntityCount;
+    private static int EntityCount => TTestData.EntityCount;
 
     protected OrderedQueryableExtensionsTestBase(ITestOutputHelper testOutputHelper) : base(testOutputHelper)
     {

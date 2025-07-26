@@ -7,9 +7,6 @@ public abstract class TestData : IDisposable
     private readonly AsyncLock _initializationLock = new();
     private bool _isInitialized;
 
-    public abstract int EntityCount { get; }
-    public abstract int ChunkSize { get; }
-
     public async Task EnsureInitializedAsync()
     {
         if (_isInitialized)

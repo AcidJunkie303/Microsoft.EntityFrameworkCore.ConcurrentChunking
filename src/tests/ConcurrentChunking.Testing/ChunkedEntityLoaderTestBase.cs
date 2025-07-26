@@ -21,7 +21,11 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
     {
         // arrange
         await using var ctx = new TDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 2, maxPrefetchCount: 4, options: ChunkedEntityLoaderOptions.None);
+        using var sut = CreateLoader(
+            chunkSize: 100_000,
+            maxConcurrentProducerCount: 2,
+            maxPrefetchCount: 4,
+            options: ChunkedEntityLoaderOptions.None);
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
@@ -43,8 +47,17 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
     public async Task LoadChunkedAsync_CheckChunkOrdering(ChunkedEntityLoaderOptions options, bool expectSequentialOrder)
     {
         // arrange
-        await using var ctx = new InMemoryDbContext();
-        using var sut = CreateLoader(chunkSize: 100_000, maxConcurrentProducerCount: 12, maxPrefetchCount: 12, options: options);
+        await using var ctx = new TDbContext();
+        using var sut = CreateLoader(
+            chunkSize: 100_000,
+            maxConcurrentProducerCount: 12,
+            maxPrefetchCount: 12,
+            options: options,
+            chunkProductionStartedCallback: chunkIndex // this will slow down the production of the chunk with index 5 causing it to be out-of-order (most likely)
+                => chunkIndex != 5
+                    ? Task.CompletedTask
+                    : Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken)
+        );
 
         // act
         var chunks = await sut.LoadAsync(TestContext.Current.CancellationToken).ToListAsync(TestContext.Current.CancellationToken);
