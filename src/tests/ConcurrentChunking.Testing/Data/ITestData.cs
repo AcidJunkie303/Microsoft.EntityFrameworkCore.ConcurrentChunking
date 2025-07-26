@@ -3,6 +3,7 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Data;
 public interface ITestData
 {
     static abstract int EntityCount { get; }
+    static abstract int ChunkSize { get; }
 }
 
 public interface ITestData<TDbContext> : ITestData

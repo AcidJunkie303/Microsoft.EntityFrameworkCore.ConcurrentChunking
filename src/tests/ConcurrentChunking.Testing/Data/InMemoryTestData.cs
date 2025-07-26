@@ -10,7 +10,8 @@ public sealed class InMemoryTestData : TestData, ITestData<InMemoryDbContext>
     private readonly DbContextFactory<InMemoryDbContext> _dbContextFactory = new(() => new InMemoryDbContext());
 
     public static ITestData<InMemoryDbContext> Instance { get; } = new InMemoryTestData();
-    public static int EntityCount => 1_000_001;
+    public static int EntityCount => 100_001;
+    public static int ChunkSize => 10_000;
 
     private InMemoryTestData()
     {

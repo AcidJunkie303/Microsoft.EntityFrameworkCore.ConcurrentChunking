@@ -3,6 +3,7 @@ name: CI/CD
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ] # Trigger on tags starting with 'v'
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -30,31 +31,31 @@ jobs:
       
       # Integration tests should not run in parallel as it would cause issues with the shared MS SQL docker container.
       # Therefore, we run them sequentially.
-#      - name: "Test: ConcurrentChunking.Tests"
-#        run: dotnet test --no-build --configuration Release --verbosity normal
-#        working-directory: ./src/tests/ConcurrentChunking.Tests
-#
-#      - name: "Test: ConcurrentChunking.DependencyInjection.Tests"
-#        run: dotnet test --no-build --configuration Release --verbosity normal
-#        working-directory: ./src/tests/ConcurrentChunking.DependencyInjection.Tests
-#
-#      - name: "Test: ConcurrentChunking.Linq.Tests"
-#        run: dotnet test --no-build --configuration Release --verbosity normal
-#        working-directory: ./src/tests/ConcurrentChunking.Linq.Tests
-#
-#      - name: "Test: ConcurrentChunking.IntegrationTests"
-#        run: dotnet test --no-build --configuration Release --verbosity normal
-#        working-directory: ./src/tests/ConcurrentChunking.IntegrationTests
-#
-#      - name: "Test: ConcurrentChunking.Linq.IntegrationTests"
-#        run: dotnet test --no-build --configuration Release --verbosity normal
-#        working-directory: ./src/tests/ConcurrentChunking.Linq.IntegrationTests
+      #      - name: "Test: ConcurrentChunking.Tests"
+      #        run: dotnet test --no-build --configuration Release --verbosity normal
+      #        working-directory: ./src/tests/ConcurrentChunking.Tests
+      #
+      #      - name: "Test: ConcurrentChunking.DependencyInjection.Tests"
+      #        run: dotnet test --no-build --configuration Release --verbosity normal
+      #        working-directory: ./src/tests/ConcurrentChunking.DependencyInjection.Tests
+      #
+      #      - name: "Test: ConcurrentChunking.Linq.Tests"
+      #        run: dotnet test --no-build --configuration Release --verbosity normal
+      #        working-directory: ./src/tests/ConcurrentChunking.Linq.Tests
+      #
+      #      - name: "Test: ConcurrentChunking.IntegrationTests"
+      #        run: dotnet test --no-build --configuration Release --verbosity normal
+      #        working-directory: ./src/tests/ConcurrentChunking.IntegrationTests
+      #
+      #      - name: "Test: ConcurrentChunking.Linq.IntegrationTests"
+      #        run: dotnet test --no-build --configuration Release --verbosity normal
+      #        working-directory: ./src/tests/ConcurrentChunking.Linq.IntegrationTests
 
       - name: Pack NuGet package
         run: dotnet pack --no-build --configuration Release -p:PackageVersion=1.0.0-pre-release.$GITHUB_RUN_NUMBER
         working-directory: ./src
 
       - name: Publish to NuGet
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/v')
         run: dotnet nuget push ./**/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
         working-directory: ./src

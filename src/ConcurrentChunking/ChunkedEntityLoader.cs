@@ -35,6 +35,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     }
 
     internal Func<int, Task>? ChunkProductionStarted { get; set; }
+    internal StatisticsMonitor? StatisticsMonitor { get; set; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="ChunkedEntityLoader{TDbContext, TEntity}" /> class using an
@@ -124,6 +125,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
         await foreach (var chunk in channelReader.ReadAsync(cancellationToken))
         {
+            StatisticsMonitor?.DecrementQueueSize();
             _prefetchLimiterSemaphore.Release();
             yield return chunk;
         }
@@ -194,12 +196,15 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         }
         finally
         {
+            StatisticsMonitor?.DecrementActiveProducer();
             _producerLimiterSemaphore.Release();
         }
     }
 
     private async Task ProduceAsync(int chunkIndex, CancellationToken cancellationToken)
     {
+        StatisticsMonitor?.IncrementActiveProducer();
+
         try
         {
             await using var context = _dbContextFactory();
@@ -224,10 +229,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
             var chunk = new Chunk<TEntity>(chunkIndex, entities);
             await _channel.Writer.WriteAsync(chunk, cancellationToken);
+            StatisticsMonitor?.IncrementQueueSize();
         }
-#pragma warning disable S2139
         catch (Exception ex)
-#pragma warning restore S2139
         {
             HasErrors = true;
             _prefetchLimiterSemaphore.Release(); // required, otherwise LoadAsync() would hang indefinitely

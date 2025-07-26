@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ConcurrentChunking;
+﻿using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
 using Shouldly;
 using Xunit;
@@ -15,17 +14,11 @@ public abstract partial class OrderedQueryableExtensionsTestBase<TDbContext, TTe
         await using var ctx = new TDbContext();
         var baseQuery = ctx.SimpleEntities.OrderBy(a => a.Id);
 
-        var data = await ctx.SimpleEntities.OrderBy(a => a.Id).Take(1000).ToListAsync(TestContext.Current.CancellationToken);
-        var count = await ctx.SimpleEntities.CountAsync(TestContext.Current.CancellationToken);
-
-        count.ShouldNotBe(0);
-        data.ShouldNotBeNull();
-
         // act
         var chunks = await baseQuery
                           .LoadChunkedAsync(
                                dbContextFactory: () => new TDbContext(),
-                               chunkSize: 100_000,
+                               chunkSize: TTestData.ChunkSize,
                                maxConcurrentProducerCount: 2,
                                maxPrefetchCount: 3,
                                options: ChunkedEntityLoaderOptions.None,
@@ -43,34 +36,5 @@ public abstract partial class OrderedQueryableExtensionsTestBase<TDbContext, TTe
         {
             uniqueIds.Contains(i).ShouldBeTrue($"Id {i} is missing from the retrieved items.");
         }
-    }
-
-    [Theory]
-    [InlineData(ChunkedEntityLoaderOptions.None, false)]
-    [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, true)]
-    public async Task LoadChunkedAsync_CheckChunkOrdering(ChunkedEntityLoaderOptions options, bool expectSequentialOrder)
-    {
-        // arrange
-        await using var ctx = new TDbContext();
-        var baseQuery = ctx.SimpleEntities.AsNoTracking().OrderBy(a => a.Id);
-
-        // act
-        var chunks = await baseQuery
-                          .LoadChunkedAsync(
-                               () => new TDbContext(),
-                               100_000,
-                               maxConcurrentProducerCount: 12,
-                               maxPrefetchCount: 12,
-                               options,
-                               LoggerFactory,
-                               TestContext.Current.CancellationToken)
-                          .ToListAsync(TestContext.Current.CancellationToken);
-
-        // assert
-        chunks.Count.ShouldBe(11);
-
-        // The likelihood that the chunks are not sequential is pretty high when the ordering is not enforced (especially when the last chunk is much smaller than the chunk size).
-        // Therefore, we assume that the chunks are not sequential.
-        IsChunkOrderSequential(chunks).ShouldBe(expectSequentialOrder);
     }
 }

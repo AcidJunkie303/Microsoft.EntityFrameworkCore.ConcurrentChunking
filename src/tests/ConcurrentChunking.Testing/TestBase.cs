@@ -7,9 +7,11 @@ namespace ConcurrentChunking.Testing;
 public abstract class TestBase : IDisposable
 {
     protected XunitLoggerFactory LoggerFactory { get; }
+    public ITestOutputHelper TestOutputHelper { get; }
 
     protected TestBase(ITestOutputHelper testOutputHelper)
     {
+        TestOutputHelper = testOutputHelper;
         LoggerFactory = new XunitLoggerFactory(testOutputHelper);
     }
 

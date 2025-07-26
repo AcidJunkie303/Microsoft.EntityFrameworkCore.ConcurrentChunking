@@ -1,6 +1,12 @@
 # Concurrent Chunking support for Entity Framework Core
 
-If retrieving large collections of objects from Entity Framework — especially when using multiple `Include()` and `ThenInclude()` statements — takes a long time, this library enables parallel and pre-emptive loading of entities. This results in significantly faster data access.
+If retrieving large collections of objects from Entity Framework — especially when using multiple `Include()` and
+`ThenInclude()` statements —
+takes a long time, this library enables parallel and preloading of entities. This results in significantly faster data
+access over time.
+
+This can be invaluable in scenarios when you need to load and process large datasets, such as in data migration,
+reporting, or batch processing tasks.
 
 # Examples
 
@@ -20,7 +26,8 @@ using var loader = new ChunkedEntityLoader<TestDbContext, SimpleEntity>(
     maxPrefetchCount: 5,
     sourceQueryProvider: ctx => ctx.SimpleEntities
         .Include(e => e.RelatedEntity).ThenInclude(e => e.AnotherRelatedEntity)
-        .Include(e => e.RelatedEntity2)
+        .Include(e => e.RelatedEntity2) 
+        .AsNoTracking()
         .OrderBy(e => e.Id),
     options: ChunkedEntityLoaderOptions.PreserveChunkOrder
 );
@@ -92,6 +99,7 @@ using var loader = factory.Create(
     sourceQueryProvider: ctx => ctx.SimpleEntities
         .Include(e => e.RelatedEntity).ThenInclude(e => e.AnotherRelatedEntity)
         .Include(e => e.RelatedEntity2)
+        .AsNoTracking()        
         .OrderBy(e => e.Id),
     options: ChunkedEntityLoaderOptions.PreserveChunkOrder
 );

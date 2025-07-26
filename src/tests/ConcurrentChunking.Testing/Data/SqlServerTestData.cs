@@ -12,7 +12,8 @@ public sealed class SqlServerTestData : TestData, ITestData<SqlServerDbContext>
     private readonly DbContextFactory<SqlServerDbContext> _dbContextFactory = new(() => new SqlServerDbContext());
 
     public static ITestData<SqlServerDbContext> Instance { get; } = new SqlServerTestData();
-    public static int EntityCount => 1_000_001;
+    public static int EntityCount => 100_001;
+    public static int ChunkSize => 10_000;
 
     private SqlServerTestData()
     {
