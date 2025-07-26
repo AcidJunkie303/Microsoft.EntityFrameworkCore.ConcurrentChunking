@@ -37,9 +37,6 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     internal Func<int, Task>? ChunkProductionStarted { get; set; }
     internal StatisticsMonitor? StatisticsMonitor { get; set; }
 
-    private int _errorCount;
-    private bool HasErrors => _errorCount > 0;
-
     /// <summary>
     ///     Initializes a new instance of the <see cref="ChunkedEntityLoader{TDbContext, TEntity}" /> class using an
     ///     <see cref="IDbContextFactory{TDbContext}" />.
