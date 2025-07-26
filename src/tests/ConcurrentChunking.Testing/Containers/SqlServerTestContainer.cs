@@ -58,7 +58,41 @@ public static class SqlServerTestContainer
 
         await container.StartAsync(TestContext.Current.CancellationToken);
         WasAlreadyRunning = container.StartedTime.Subtract(DateTimeOffset.UtcNow.DateTime) < TimeSpan.FromSeconds(10);
+
+        await WaitAndEnsureAccessibleAsync(TimeSpan.FromSeconds(30));
+
         MsSqlContainer = container;
+    }
+
+    private static async Task WaitAndEnsureAccessibleAsync(TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+
+        while (!cts.IsCancellationRequested)
+        {
+            if (await IsAccessible())
+            {
+                return;
+            }
+        }
+
+        throw new InvalidOperationException("The SQL server is not accessible!");
+
+        async Task<bool> IsAccessible()
+        {
+            try
+            {
+                await using var dbContext = new SqlServerDbContext();
+                await dbContext.SimpleEntities.CountAsync(cts.Token);
+                return true;
+            }
+#pragma warning disable CS0168 // Variable is declared but never used
+            catch (Exception ex)
+#pragma warning restore CS0168 // Variable is declared but never used
+            {
+                return false;
+            }
+        }
     }
 
     private static async Task EnsureMigrationsExecutedAsync()

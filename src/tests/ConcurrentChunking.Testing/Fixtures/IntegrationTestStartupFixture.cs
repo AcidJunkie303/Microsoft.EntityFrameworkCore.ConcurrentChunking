@@ -11,7 +11,7 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Fixtures;
 public sealed class IntegrationTestStartupFixture : IAsyncLifetime
 {
     private static bool IsRiderHosted { get; } = !Environment.GetEnvironmentVariable("RESHARPER_HOST").IsNullOrEmpty();
-    private static bool IsVsHosted { get; } = !Environment.GetEnvironmentVariable("RESHARPER_HOST").IsNullOrEmpty(); // TODO: Find out a way to detect if running in Visual Studio
+    private static bool IsVsHosted { get; } = !Environment.GetEnvironmentVariable("VisualStudioEdition").IsNullOrEmpty();
 
     public async ValueTask InitializeAsync()
     {

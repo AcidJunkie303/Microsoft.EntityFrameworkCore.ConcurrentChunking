@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking;
-using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 using Shouldly;
 using Xunit;
 
