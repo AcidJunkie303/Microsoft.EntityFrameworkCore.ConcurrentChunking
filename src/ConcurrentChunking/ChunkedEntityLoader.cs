@@ -167,8 +167,8 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             var entityCount = await GetExpectedEntityCoundAsync();
             var chunkCount = (int) (entityCount / _chunkSize) + (entityCount % _chunkSize > 0 ? 1 : 0);
 
-            _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
-                EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, entityCount, chunkCount);
+            _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, MaxPrefetchCount={MaxPrefetchCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
+                EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, _prefetchLimiterSemaphore.CurrentCount, entityCount, chunkCount);
 
             var tasks = new List<Task>(chunkCount);
 
@@ -181,6 +181,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
                 var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), cancellationToken); // we do not await this task to allow concurrent production
                 tasks.Add(task);
+
+                // throttle the producers to ensure that they start in order
+                await Task.Delay(TimeSpan.FromMilliseconds(1), cancellationToken);
             }
 
             await Task.WhenAll(tasks);

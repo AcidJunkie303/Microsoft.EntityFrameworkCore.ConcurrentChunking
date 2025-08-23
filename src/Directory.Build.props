@@ -95,7 +95,7 @@
         <AdditionalFiles Include="$(SolutionDir)BannedSymbols.txt"/>
         <None Include="$(SolutionDir)LICENSE.txt">
             <Pack>True</Pack>
-            <PackagePath></PackagePath>
+            <PackagePath />
         </None>
         <None Include="$(SolutionDir)icon.png">
             <Pack>True</Pack>
