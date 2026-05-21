@@ -88,6 +88,7 @@ dotnet_diagnostic.ca1309.severity = error
 dotnet_diagnostic.ca1507.severity = error
 dotnet_diagnostic.ca1825.severity = error
 dotnet_diagnostic.ca1852.severity = error # Seal internal types
+dotnet_diagnostic.ca1873.severity = none # Evaluation of this argument may be expensive and unnecessary if logging is disabled ->  We don't want to force it
 dotnet_diagnostic.ca2016.severity = error
 dotnet_diagnostic.ca2200.severity = error
 dotnet_diagnostic.ca3076.severity = error
