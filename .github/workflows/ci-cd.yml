@@ -3,14 +3,14 @@ name: CI/CD
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ] # Trigger on tags starting with 'v'
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build-test-pack-publish:
-    runs-on: ubuntu-latest #windows-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -21,16 +21,45 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
+      - name: Read version from version.json
+        id: version
+        shell: bash
+        run: |
+          VERSION_JSON="version.json"
+
+          MAJOR=$(jq -r '.version.major' "$VERSION_JSON")
+          MINOR=$(jq -r '.version.minor' "$VERSION_JSON")
+          PATCH=$(jq -r '.version.patch' "$VERSION_JSON")
+          IS_PRERELEASE=$(jq -r '.isPreRelease' "$VERSION_JSON")
+
+          BASE_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          ASSEMBLY_VERSION="${MAJOR}.${MINOR}.${PATCH}.${GITHUB_RUN_NUMBER}"
+          FILE_VERSION="${MAJOR}.${MINOR}.${PATCH}.${GITHUB_RUN_NUMBER}"
+
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+            PACKAGE_VERSION="${BASE_VERSION}-prerelease.${GITHUB_RUN_NUMBER}"
+          else
+            PACKAGE_VERSION="${BASE_VERSION}"
+          fi
+
+          echo "base_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "package_version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "assembly_version=$ASSEMBLY_VERSION" >> "$GITHUB_OUTPUT"
+          echo "file_version=$FILE_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Restore dependencies
         run: dotnet restore
         working-directory: ./src
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release /p:Version=0.0.0.$GITHUB_RUN_NUMBER
+        run: >
+          dotnet build --no-restore --configuration Release
+          /p:Version=${{ steps.version.outputs.base_version }}
+          /p:AssemblyVersion=${{ steps.version.outputs.assembly_version }}
+          /p:FileVersion=${{ steps.version.outputs.file_version }}
+          /p:InformationalVersion=${{ steps.version.outputs.package_version }}
         working-directory: ./src
-      
-      # Integration tests should not run in parallel as it would cause issues with the shared MS SQL docker container.
-      # Therefore, we run them sequentially.
+
       - name: "Test: ConcurrentChunking.Tests"
         run: dotnet test --no-build --configuration Release --verbosity normal
         working-directory: ./src/tests/ConcurrentChunking.Tests
@@ -52,10 +81,17 @@ jobs:
         working-directory: ./src/tests/ConcurrentChunking.Linq.IntegrationTests
 
       - name: Pack NuGet package
-        run: dotnet pack --no-build --configuration Release -p:PackageVersion=1.0.0-prerelease.$GITHUB_RUN_NUMBER
+        run: >
+          dotnet pack --no-build --configuration Release
+          /p:PackageVersion=${{ steps.version.outputs.package_version }}
         working-directory: ./src
 
       - name: Publish to NuGet
         if: startsWith(github.ref, 'refs/tags/v')
-        run: dotnet nuget push ./**/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_KEY }} --skip-duplicate
+        run: >
+          dotnet nuget push ./**/*.nupkg
+          --source https://api.nuget.org/v3/index.json
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --skip-duplicate
         working-directory: ./src
+        
