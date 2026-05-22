@@ -8,6 +8,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-test-pack-publish:
     runs-on: ubuntu-latest
@@ -92,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
-          path: "**/*.nupkg"
+          path: ./src/**/*.nupkg
 
       - name: Publish to NuGet
         if: startsWith(github.ref, 'refs/tags/v')
