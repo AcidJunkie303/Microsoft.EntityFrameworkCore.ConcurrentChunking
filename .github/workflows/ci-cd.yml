@@ -88,6 +88,12 @@ jobs:
           /p:PackageVersion=${{ steps.version.outputs.package_version }}
         working-directory: ./src
 
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: "**/*.nupkg"
+
       - name: Publish to NuGet
         if: startsWith(github.ref, 'refs/tags/v')
         run: >
