@@ -44,7 +44,7 @@ jobs:
           if [[ "$IS_PRERELEASE" == "true" ]]; then
             PACKAGE_VERSION="${BASE_VERSION}-prerelease.${GITHUB_RUN_NUMBER}"
           else
-            PACKAGE_VERSION="${BASE_VERSION}"
+            PACKAGE_VERSION="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"
           fi
 
           echo "base_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
