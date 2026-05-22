@@ -1,0 +1,66 @@
+<Project>
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking" Version="1.0.0-prerelease.31"/>
+        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking.DependencyInjection" Version="1.0.0-prerelease.31"/>
+        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking.Linq" Version="1.0.0-prerelease.31"/>
+        <PackageVersion Include="JunitXml.TestLogger" Version="8.0.0"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="[8.0.0,999.999.999]"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Abstractions" Version="[8.0.0,999.999.999]"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="[8.0.0,999.999.999]"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="[8.0.0,999.999.999]"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="[8.0.0,999.999.999]"/>
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="[8.0.3,999.999.999]"/>
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
+        <PackageVersion Include="Shouldly" Version="4.3.0"/>
+        <PackageVersion Include="System.Linq.Async" Version="7.0.1"/>
+        <PackageVersion Include="Testcontainers" Version="4.12.0"/>
+        <PackageVersion Include="Testcontainers.MsSql" Version="4.12.0"/>
+        <PackageVersion Include="coverlet.collector" Version="10.0.1"/>
+        <PackageVersion Include="xunit.analyzers" Version="1.27.0"/>
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" privateAssets="all"/>
+        <PackageVersion Include="xunit.v3" Version="3.2.2"/>
+        <PackageVersion Include="xunit.v3.common" Version="3.2.2"/>
+    </ItemGroup>
+
+    <!-- C# Analyzers -->
+    <ItemGroup>
+        <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.90">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </GlobalPackageReference>
+        <GlobalPackageReference Include="SonarAnalyzer.CSharp" Version="10.26.0.140279">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </GlobalPackageReference>
+        <GlobalPackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </GlobalPackageReference>
+        <GlobalPackageReference Include="Roslynator.Analyzers" Version="4.15.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </GlobalPackageReference>
+        <GlobalPackageReference Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </GlobalPackageReference>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+        <AdditionalFiles Include="$(SolutionDir)BannedSymbols.txt"/>
+        <None Include="$(SolutionDir)LICENSE.txt">
+            <Pack>True</Pack>
+            <PackagePath/>
+        </None>
+        <None Include="$(SolutionDir)icon.png">
+            <Pack>True</Pack>
+            <PackagePath></PackagePath>
+        </None>
+        <None Include="$(SolutionDir)../README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

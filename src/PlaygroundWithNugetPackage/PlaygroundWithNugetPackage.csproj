@@ -2,19 +2,19 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0</TargetFramework>
-        <NoWarn>$(NoWarn);CA1515</NoWarn>
+        <TargetFramework>net10.0</TargetFramework>
+        <NoWarn>$(NoWarn);CA1515;MA0004;</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking" Version="1.0.0-prerelease.20"/>
-        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.DependencyInjection" Version="1.0.0-prerelease.20"/>
-        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.Linq" Version="1.0.0-prerelease.20"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7"/>
-        <PackageReference Include="System.Linq.Async" Version="6.0.3"/>
+        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking"/>
+        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.DependencyInjection"/>
+        <PackageReference Include="EntityFrameworkCore.ConcurrentChunking.Linq"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"/>
+        <PackageReference Include="System.Linq.Async"/>
     </ItemGroup>
 
 </Project>

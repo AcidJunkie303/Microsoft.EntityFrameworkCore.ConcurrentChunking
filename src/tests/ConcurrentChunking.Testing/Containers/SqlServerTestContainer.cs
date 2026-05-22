@@ -41,8 +41,7 @@ public static class SqlServerTestContainer
             return;
         }
 
-        var container = new MsSqlBuilder()
-                       .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        var container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
                        .WithReuse(true)
                        .WithPassword($"sa@{Password}")
                        .WithPortBinding(1433, 1433)

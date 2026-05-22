@@ -26,12 +26,13 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly SemaphoreSlim _producerLimiterSemaphore;
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _chunkSize;
-    private bool _hasError;
 
+#pragma warning disable S2325
     private bool HasErrors
+#pragma warning restore S2325
     {
-        get => Volatile.Read(ref _hasError);
-        set => Volatile.Write(ref _hasError, value);
+        get => Volatile.Read(ref field);
+        set => Volatile.Write(ref field, value);
     }
 
     internal Func<int, Task>? ChunkProductionStarted { get; set; }
