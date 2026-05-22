@@ -67,19 +67,6 @@
         <RootNamespace>Microsoft.EntityFrameworkCore.$(ProjectName)</RootNamespace>
     </PropertyGroup>
 
-    <ItemGroup Condition="'$(IsTestProject)' != 'true'">
-        <AdditionalFiles Include="$(SolutionDir)BannedSymbols.txt"/>
-        <None Include="$(SolutionDir)LICENSE.txt">
-            <Pack>True</Pack>
-            <PackagePath/>
-        </None>
-        <None Include="$(SolutionDir)icon.png">
-            <Pack>True</Pack>
-            <PackagePath></PackagePath>
-        </None>
-        <None Include="$(SolutionDir)../README.md" Pack="true" PackagePath="\"/>
-    </ItemGroup>
-
     <!-- Unit testing -->
     <ItemGroup Condition="'$(IsTestProject)' == 'true'">
         <PackageReference Include="Microsoft.NET.Test.Sdk"/>
