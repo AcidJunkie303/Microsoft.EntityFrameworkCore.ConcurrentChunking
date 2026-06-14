@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Entities;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Data;
 
-[SuppressMessage("Performance", "MA0158:Use System.Threading.Lock", Justification = "we support both, .NET8.0 and .NET9.0")]
+[SuppressMessage("Performance", "MA0158:Use System.Threading.Lock", Justification = "We support also .NET8.0 and .NET9.0 that lack the Lock type")]
 public sealed class InMemoryTestData : TestData, ITestData<InMemoryDbContext>
 {
     private readonly DbContextFactory<InMemoryDbContext> _dbContextFactory = new(() => new InMemoryDbContext());

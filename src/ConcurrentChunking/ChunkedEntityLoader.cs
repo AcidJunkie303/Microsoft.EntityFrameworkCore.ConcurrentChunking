@@ -197,7 +197,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         try
         {
             var entityCount = await GetExpectedEntityCountAsync(cancellationToken);
-            var chunkCount = (int) (entityCount / _chunkSize) + (entityCount % _chunkSize > 0 ? 1 : 0);
+            var chunkCount = CalculateChunkCount(entityCount);
 
             _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, MaxPrefetchCount={MaxPrefetchCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
                 EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, _prefetchLimiterSemaphore.CurrentCount, entityCount, chunkCount);
@@ -211,7 +211,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
                 await _prefetchLimiterSemaphore.WaitAsync(cancellationToken);
                 await _producerLimiterSemaphore.WaitAsync(cancellationToken);
 
-                var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), cancellationToken); // we do not await this task to allow concurrent production
+                var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), CancellationToken.None); // we do not await this task to allow concurrent production
                 tasks.Add(task);
             }
 
@@ -250,7 +250,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         {
             await using var context = _dbContextFactory();
             var query = _sourceQueryProvider(context);
-            var startIndex = chunkIndex * _chunkSize;
+            var startIndex = checked(chunkIndex * _chunkSize);
 
             _logger?.LogTrace("Producing chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName}", chunkIndex, startIndex, EntityTypeName);
 
@@ -295,10 +295,33 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     {
         await using var context = _dbContextFactory();
 
-        _logger?.LogTrace("Getting total entity expected entity count for EntityTypeName={EntityTypeName}", EntityTypeName);
+        _logger?.LogTrace("Getting total expected entity count for EntityTypeName={EntityTypeName}", EntityTypeName);
         var count = await _sourceQueryProvider(context).LongCountAsync(cancellationToken);
-
         _logger?.LogTrace("Expected entity count for EntityTypeName={EntityTypeName} is {EntityCount}.", EntityTypeName, count);
+
         return count;
+    }
+
+    private int CalculateChunkCount(long entityCount)
+    {
+        var chunkCountLong = (entityCount / _chunkSize) + (entityCount % _chunkSize > 0 ? 1 : 0);
+
+        if (chunkCountLong > int.MaxValue)
+        {
+            throw new InvalidOperationException($"The query for '{EntityTypeName}' produces too many chunks ({chunkCountLong}). The current implementation supports up to {int.MaxValue} chunks.");
+        }
+
+        if (chunkCountLong == 0)
+        {
+            return 0;
+        }
+
+        var maxStartIndex = (chunkCountLong - 1) * _chunkSize;
+        if (maxStartIndex > int.MaxValue)
+        {
+            throw new InvalidOperationException($"The query for '{EntityTypeName}' contains too many rows for Skip/Take paging. Maximum supported start index is {int.MaxValue}, but calculated value is {maxStartIndex}.");
+        }
+
+        return (int) chunkCountLong;
     }
 }

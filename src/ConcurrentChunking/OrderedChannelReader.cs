@@ -66,6 +66,19 @@ internal sealed class OrderedChannelReader<TEntity> : IChannelReader<TEntity>
             _pendingChunksByIndex[chunk.ChunkIndex] = chunk;
         }
 
+        while (_pendingChunksByIndex.Remove(expectedIndex, out var bufferedChunk))
+        {
+            _logger?.LogTrace("Returning buffered chunk with index {ChunkIndex} after channel completion.", expectedIndex);
+            yield return bufferedChunk;
+            expectedIndex++;
+        }
+
+        if (_pendingChunksByIndex.Count > 0)
+        {
+            var smallestBufferedIndex = _pendingChunksByIndex.Keys.Min();
+            throw new InvalidOperationException($"Chunk ordering violation detected. Missing chunk index {expectedIndex}, next buffered index is {smallestBufferedIndex}.");
+        }
+
         _logger?.LogTrace("Channel completed for ordered reader.");
     }
 }
