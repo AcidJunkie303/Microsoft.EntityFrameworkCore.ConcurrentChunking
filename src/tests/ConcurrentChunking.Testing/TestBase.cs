@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking.Testing.Logging;
 using Xunit;
 
@@ -20,9 +19,6 @@ public abstract class TestBase : IDisposable
         Dispose(true);
         GC.SuppressFinalize(this);
     }
-
-    protected static bool IsChunkOrderSequential<T>(in IReadOnlyList<Chunk<T>> chunks)
-        => !chunks.Where((chunk, i) => chunk.ChunkIndex != i).Any();
 
     protected virtual void Dispose(bool disposing)
     {

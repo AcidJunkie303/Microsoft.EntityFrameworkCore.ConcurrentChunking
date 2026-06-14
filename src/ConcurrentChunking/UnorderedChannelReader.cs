@@ -6,10 +6,10 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
 internal sealed class UnorderedChannelReader<TEntity> : IChannelReader<TEntity>
 {
-    private readonly ChannelReader<object?> _channelReader;
+    private readonly ChannelReader<Chunk<TEntity>> _channelReader;
     private readonly ILogger<UnorderedChannelReader<TEntity>>? _logger;
 
-    public UnorderedChannelReader(ChannelReader<object?> channelReader, ILogger<UnorderedChannelReader<TEntity>>? logger)
+    public UnorderedChannelReader(ChannelReader<Chunk<TEntity>> channelReader, ILogger<UnorderedChannelReader<TEntity>>? logger)
     {
         _channelReader = channelReader;
         _logger = logger;
@@ -17,26 +17,12 @@ internal sealed class UnorderedChannelReader<TEntity> : IChannelReader<TEntity>
 
     public async IAsyncEnumerable<Chunk<TEntity>> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        while (true)
+        await foreach (var chunk in _channelReader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
-            var item = await _channelReader.ReadAsync(cancellationToken);
-            switch (item)
-            {
-                case null:
-                    _logger?.LogTrace("Received null from channel which indicates completion.");
-                    yield break;
-
-                case Chunk<TEntity> chunk:
-                    _logger?.LogTrace("Obtained chunk with index {ChunkIndex} from underlying queue and passing it to the caller.", chunk.ChunkIndex);
-                    yield return chunk;
-                    break;
-
-                case Exception ex:
-                    throw new InvalidOperationException("Received exception from producer.", ex);
-
-                default:
-                    throw new InvalidOperationException($"Unexpected item type: {item.GetType().FullName}");
-            }
+            _logger?.LogTrace("Obtained chunk with index {ChunkIndex} from underlying queue and passing it to the caller.", chunk.ChunkIndex);
+            yield return chunk;
         }
+
+        _logger?.LogTrace("Channel completed for unordered reader.");
     }
 }

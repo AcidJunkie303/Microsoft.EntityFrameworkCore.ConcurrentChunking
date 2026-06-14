@@ -65,7 +65,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
     [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, 4, 7)]
     [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, 8, 3)]
     [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, 10, 1)]
-    public async Task LoadChunkedAsync_ArgumentsIsHonored(ChunkedEntityLoaderOptions options, int maxConcurrentProducerCount, int maxPrefetchCount)
+    public async Task LoadChunkedAsync_ArgumentsAreHonored(ChunkedEntityLoaderOptions options, int maxConcurrentProducerCount, int maxPrefetchCount)
     {
         // arrange
         await using var ctx = new TDbContext();
@@ -80,7 +80,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
         await foreach (var _ in sut.LoadAsync(TestContext.Current.CancellationToken))
         {
             // Simulate some processing time for each chunk
-            await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+            await Task.Delay(Random.Shared.Next(5,50), TestContext.Current.CancellationToken);
         }
 
         // assert

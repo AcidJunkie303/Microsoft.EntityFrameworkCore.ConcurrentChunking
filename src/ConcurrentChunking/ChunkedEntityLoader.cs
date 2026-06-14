@@ -21,7 +21,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly ChunkedEntityLoaderOptions _options;
     private readonly ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? _logger;
     private readonly ILoggerFactory? _loggerFactory;
-    private readonly Channel<object?> _channel;
+    private readonly Channel<Chunk<TEntity>> _channel;
     private readonly Func<TDbContext> _dbContextFactory;
     private readonly SemaphoreSlim _producerLimiterSemaphore;
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
@@ -118,7 +118,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         _producerLimiterSemaphore = new SemaphoreSlim(finalMaxConcurrentProducerCount, finalMaxConcurrentProducerCount);
         _prefetchLimiterSemaphore = new SemaphoreSlim(maxPrefetchCount, maxPrefetchCount);
 
-        _channel = Channel.CreateUnbounded<object?>();
+        _channel = Channel.CreateUnbounded<Chunk<TEntity>>();
     }
 
     /// <summary>
@@ -139,15 +139,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             yield return chunk;
         }
 
-        try
-        {
-            await producersTask;
-        }
-        catch (ChannelClosedException) when (_channel.Reader.Completion.IsFaulted)
-        {
-            await _channel.Reader.Completion;
-            throw;
-        }
+        await producersTask;
     }
 
     /// <summary>
@@ -182,21 +174,16 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
                 var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), cancellationToken); // we do not await this task to allow concurrent production
                 tasks.Add(task);
-
-                // throttle the producers to ensure that they start in order
-                await Task.Delay(TimeSpan.FromMilliseconds(1), cancellationToken);
             }
 
             await Task.WhenAll(tasks);
-
-            await _channel.Writer.WriteAsync(null, cancellationToken);
-            _channel.Writer.Complete();
+            _channel.Writer.TryComplete();
         }
         catch (Exception ex)
         {
             HasErrors = true;
             _logger?.LogError(ex, "Exception in StartProducersAsync.");
-            await _channel.Writer.WriteAsync(ex, cancellationToken);
+            _channel.Writer.TryComplete(ex);
         }
     }
 
