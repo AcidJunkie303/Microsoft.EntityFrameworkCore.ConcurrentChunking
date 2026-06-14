@@ -149,17 +149,35 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
         async IAsyncEnumerable<Chunk<TEntity>> LoadCoreAsync([EnumeratorCancellation] CancellationToken ct)
         {
-            var producersTask = StartProducersAsync(ct);
+            using var producerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var producersTask = StartProducersAsync(producerCancellationTokenSource.Token);
             var channelReader = CreateChannelReader();
 
-            await foreach (var chunk in channelReader.ReadAsync(ct))
+            try
             {
-                StatisticsMonitor?.DecrementQueueSize();
-                _prefetchLimiterSemaphore.Release();
-                yield return chunk;
+                await foreach (var chunk in channelReader.ReadAsync(ct))
+                {
+                    StatisticsMonitor?.DecrementQueueSize();
+                    _prefetchLimiterSemaphore.Release();
+                    yield return chunk;
+                }
             }
+            finally
+            {
+                if (!producersTask.IsCompleted)
+                {
+                    await producerCancellationTokenSource.CancelAsync();
+                }
 
-            await producersTask;
+                try
+                {
+                    await producersTask;
+                }
+                catch (OperationCanceledException) when (producerCancellationTokenSource.IsCancellationRequested)
+                {
+                    // Cancellation is expected when the consumer stops enumeration early.
+                }
+            }
         }
     }
 
@@ -178,7 +196,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
         try
         {
-            var entityCount = await GetExpectedEntityCountAsync();
+            var entityCount = await GetExpectedEntityCountAsync(cancellationToken);
             var chunkCount = (int) (entityCount / _chunkSize) + (entityCount % _chunkSize > 0 ? 1 : 0);
 
             _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, MaxPrefetchCount={MaxPrefetchCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
@@ -198,6 +216,10 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             }
 
             await Task.WhenAll(tasks);
+            _channel.Writer.TryComplete();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
             _channel.Writer.TryComplete();
         }
         catch (Exception ex)
@@ -250,6 +272,11 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             await _channel.Writer.WriteAsync(chunk, cancellationToken);
             StatisticsMonitor?.IncrementQueueSize();
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _prefetchLimiterSemaphore.Release(); // required, otherwise StartProducersAsync() could remain blocked
+            throw;
+        }
         catch (Exception ex)
         {
             HasErrors = true;
@@ -264,12 +291,12 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             ? new OrderedChannelReader<TEntity>(_channel.Reader, _loggerFactory?.CreateLogger<OrderedChannelReader<TEntity>>())
             : new UnorderedChannelReader<TEntity>(_channel.Reader, _loggerFactory?.CreateLogger<UnorderedChannelReader<TEntity>>());
 
-    private async Task<long> GetExpectedEntityCountAsync()
+    private async Task<long> GetExpectedEntityCountAsync(CancellationToken cancellationToken)
     {
         await using var context = _dbContextFactory();
 
         _logger?.LogTrace("Getting total entity expected entity count for EntityTypeName={EntityTypeName}", EntityTypeName);
-        var count = await _sourceQueryProvider(context).LongCountAsync();
+        var count = await _sourceQueryProvider(context).LongCountAsync(cancellationToken);
 
         _logger?.LogTrace("Expected entity count for EntityTypeName={EntityTypeName} is {EntityCount}.", EntityTypeName, count);
         return count;

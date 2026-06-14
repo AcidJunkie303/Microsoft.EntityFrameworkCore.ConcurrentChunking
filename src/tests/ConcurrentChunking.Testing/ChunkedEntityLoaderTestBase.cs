@@ -8,6 +8,38 @@ namespace ConcurrentChunking.Testing;
 public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
 {
     [Fact]
+    public async Task LoadChunkedAsync_WhenEnumerationStopsEarly_ProducerSchedulingStops()
+    {
+        // arrange
+        await using var ctx = new TDbContext();
+        var chunkProductionStartedCount = 0;
+
+        using var sut = CreateLoader(
+            chunkSize: Math.Max(1, TTestData.EntityCount / 200),
+            maxConcurrentProducerCount: 2,
+            maxPrefetchCount: 2,
+            options: ChunkedEntityLoaderOptions.None,
+            chunkProductionStartedCallback: async _ =>
+            {
+                Interlocked.Increment(ref chunkProductionStartedCount);
+                await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
+            });
+
+        // act
+        await using (var enumerator = sut.LoadAsync(TestContext.Current.CancellationToken).GetAsyncEnumerator(TestContext.Current.CancellationToken))
+        {
+            (await enumerator.MoveNextAsync()).ShouldBeTrue();
+        }
+
+        await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+        var startedAfterEarlyStop = Volatile.Read(ref chunkProductionStartedCount);
+        await Task.Delay(TimeSpan.FromMilliseconds(600), TestContext.Current.CancellationToken);
+
+        // assert
+        Volatile.Read(ref chunkProductionStartedCount).ShouldBe(startedAfterEarlyStop);
+    }
+
+    [Fact]
     public async Task LoadChunkedAsync_ConcurrentCalls_OnlyOneMaySucceed()
     {
         // arrange
