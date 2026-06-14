@@ -74,7 +74,7 @@ public static class QueryableExtensions
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    public static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
+    public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
         this IOrderedQueryable<TEntity> query,
         Func<TDbContext> dbContextFactory,
@@ -83,14 +83,31 @@ public static class QueryableExtensions
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILoggerFactory? loggerFactory = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
+        in CancellationToken cancellationToken = default
+    )
+        where TEntity : class
+        where TDbContext : DbContext
+    {
+        ValidateLoadChunkedArguments(query, dbContextFactory);
+        return LoadChunkedCoreAsync(query, dbContextFactory, chunkSize, maxConcurrentProducerCount, maxPrefetchCount, options, loggerFactory, cancellationToken);
+    }
+
+    private static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedCoreAsync<TEntity, TDbContext>
+    (
+        IOrderedQueryable<TEntity> query,
+        Func<TDbContext> dbContextFactory,
+        int chunkSize,
+        int maxConcurrentProducerCount,
+        int maxPrefetchCount,
+        ChunkedEntityLoaderOptions options,
+        ILoggerFactory? loggerFactory,
+        [EnumeratorCancellation] CancellationToken cancellationToken
     )
         where TEntity : class
         where TDbContext : DbContext
     {
         var entityQueryRootExpression = EntityQueryRootExpressionExtractor.Extract(query.Expression)
                                         ?? throw new InvalidOperationException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
-        await using var newDbContext = dbContextFactory();
         var rootEntityType = entityQueryRootExpression.EntityType.ClrType;
 
         using ChunkedEntityLoader<TDbContext, TEntity> loader = new
@@ -108,6 +125,19 @@ public static class QueryableExtensions
         await foreach (var chunk in loader.LoadAsync(cancellationToken))
         {
             yield return chunk;
+        }
+    }
+
+    private static void ValidateLoadChunkedArguments<TEntity, TDbContext>(IOrderedQueryable<TEntity> query, Func<TDbContext> dbContextFactory)
+        where TEntity : class
+        where TDbContext : DbContext
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(dbContextFactory);
+
+        if (!QueryExpressionChecker.HasOrderBy(query.Expression))
+        {
+            throw new InvalidOperationException("The query must include an explicit OrderBy/OrderByDescending before calling LoadChunkedAsync.");
         }
     }
 

@@ -26,7 +26,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly SemaphoreSlim _producerLimiterSemaphore;
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _chunkSize;
-    private bool _isUsed;
+    private int _isUsed;
 
 #pragma warning disable S2325
     private bool HasErrors
@@ -140,12 +140,10 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// <exception cref="InvalidOperationException"></exception>
     public IAsyncEnumerable<Chunk<TEntity>> LoadAsync(CancellationToken cancellationToken)
     {
-        if (_isUsed)
+        if (Interlocked.Exchange(ref _isUsed, 1) == 1)
         {
             throw new InvalidOperationException("This loader instance has already been used. Please create a new instance for each load operation.");
         }
-
-        _isUsed = true;
 
         return LoadCoreAsync(cancellationToken);
 

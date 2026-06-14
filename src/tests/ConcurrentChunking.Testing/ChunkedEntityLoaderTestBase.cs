@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 using Shouldly;
 using Xunit;
@@ -6,6 +7,45 @@ namespace ConcurrentChunking.Testing;
 
 public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
 {
+    [Fact]
+    public async Task LoadChunkedAsync_ConcurrentCalls_OnlyOneMaySucceed()
+    {
+        // arrange
+        await using var ctx = new TDbContext();
+        using var sut = CreateLoader(
+            chunkSize: TTestData.ChunkSize,
+            maxConcurrentProducerCount: 2,
+            maxPrefetchCount: 4,
+            options: ChunkedEntityLoaderOptions.None);
+
+        var exceptions = new ConcurrentBag<Exception>();
+        var successfulCalls = 0;
+
+        var load = () =>
+        {
+            try
+            {
+                _ = sut.LoadAsync(TestContext.Current.CancellationToken);
+                Interlocked.Increment(ref successfulCalls);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+        };
+
+        // act
+        await Task.WhenAll(
+            Task.Run(load, TestContext.Current.CancellationToken),
+            Task.Run(load, TestContext.Current.CancellationToken)
+        );
+
+        // assert
+        successfulCalls.ShouldBe(1);
+        exceptions.Count.ShouldBe(1);
+        exceptions.Single().ShouldBeOfType<InvalidOperationException>();
+    }
+
     [Fact]
     public async Task LoadChunkedAsync_EnsureAllItemsHaveBeenRetrieved()
     {
@@ -80,7 +120,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
         await foreach (var _ in sut.LoadAsync(TestContext.Current.CancellationToken))
         {
             // Simulate some processing time for each chunk
-            await Task.Delay(Random.Shared.Next(5,50), TestContext.Current.CancellationToken);
+            await Task.Delay(Random.Shared.Next(5, 50), TestContext.Current.CancellationToken);
         }
 
         // assert
