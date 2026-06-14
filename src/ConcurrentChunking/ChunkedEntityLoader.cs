@@ -25,6 +25,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly Func<TDbContext> _dbContextFactory;
     private readonly SemaphoreSlim _producerLimiterSemaphore;
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
+    private readonly int _maxConcurrentProducerCount;
     private readonly int _chunkSize;
     private int _isUsed;
 
@@ -126,6 +127,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         _chunkSize = chunkSize;
 
         var finalMaxConcurrentProducerCount = Math.Min(maxConcurrentProducerCount, maxPrefetchCount);
+        _maxConcurrentProducerCount = finalMaxConcurrentProducerCount;
         _producerLimiterSemaphore = new SemaphoreSlim(finalMaxConcurrentProducerCount, finalMaxConcurrentProducerCount);
         _prefetchLimiterSemaphore = new SemaphoreSlim(maxPrefetchCount, maxPrefetchCount);
 
@@ -190,6 +192,28 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         _prefetchLimiterSemaphore.Dispose();
     }
 
+    private static async Task RemoveCompletedTasksIfNecessaryAsync(List<Task> tasks, int maxConcurrentProducerCount, bool force)
+    {
+        // we only clean-up when forced or when we have a certain amount of tasks in the list
+        var shouldCleanUp = tasks.Count >= maxConcurrentProducerCount * 2;
+        if (!(shouldCleanUp || force))
+        {
+            return;
+        }
+
+        for (var i = tasks.Count - 1; i >= 0; i--)
+        {
+            var task = tasks[i];
+            if (!task.IsCompleted)
+            {
+                continue;
+            }
+
+            await task;
+            tasks.RemoveAt(i);
+        }
+    }
+
     private async Task StartProducersAsync(CancellationToken cancellationToken)
     {
         await Task.Yield();
@@ -202,7 +226,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, MaxPrefetchCount={MaxPrefetchCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
                 EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, _prefetchLimiterSemaphore.CurrentCount, entityCount, chunkCount);
 
-            var tasks = new List<Task>(chunkCount);
+            var tasks = new List<Task>(_maxConcurrentProducerCount*3);
 
             for (var i = 0; i < chunkCount && !HasErrors; i++)
             {
@@ -213,6 +237,8 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
                 var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), CancellationToken.None); // we do not await this task to allow concurrent production
                 tasks.Add(task);
+
+                await RemoveCompletedTasksIfNecessaryAsync(tasks, _maxConcurrentProducerCount, force: false);
             }
 
             await Task.WhenAll(tasks);
