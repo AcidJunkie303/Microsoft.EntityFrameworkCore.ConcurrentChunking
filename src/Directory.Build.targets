@@ -3,6 +3,9 @@
     <!-- Unit testing -->
     <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
         <NoWarn>$(NoWarn);RCS1046;CA1707;S4017;CA1515</NoWarn>
+        <GenerateProgramFile>false</GenerateProgramFile>
+        <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+        <TargetFramework>net10.0</TargetFramework>
     </PropertyGroup>
 
 </Project>

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 using Shouldly;
 using Xunit;
@@ -6,6 +7,77 @@ namespace ConcurrentChunking.Testing;
 
 public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
 {
+    [Fact]
+    public async Task LoadChunkedAsync_WhenEnumerationStopsEarly_ProducerSchedulingStops()
+    {
+        // arrange
+        await using var ctx = new TDbContext();
+        var chunkProductionStartedCount = 0;
+
+        using var sut = CreateLoader(
+            chunkSize: Math.Max(1, TTestData.EntityCount / 200),
+            maxConcurrentProducerCount: 2,
+            maxPrefetchCount: 2,
+            options: ChunkedEntityLoaderOptions.None,
+            chunkProductionStartedCallback: async _ =>
+            {
+                Interlocked.Increment(ref chunkProductionStartedCount);
+                await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
+            });
+
+        // act
+        await using (var enumerator = sut.LoadAsync(TestContext.Current.CancellationToken).GetAsyncEnumerator(TestContext.Current.CancellationToken))
+        {
+            (await enumerator.MoveNextAsync()).ShouldBeTrue();
+        }
+
+        await Task.Delay(TimeSpan.FromMilliseconds(300), TestContext.Current.CancellationToken);
+        var startedAfterEarlyStop = Volatile.Read(ref chunkProductionStartedCount);
+        await Task.Delay(TimeSpan.FromMilliseconds(600), TestContext.Current.CancellationToken);
+
+        // assert
+        Volatile.Read(ref chunkProductionStartedCount).ShouldBe(startedAfterEarlyStop);
+    }
+
+    [Fact]
+    public async Task LoadChunkedAsync_ConcurrentCalls_OnlyOneMaySucceed()
+    {
+        // arrange
+        await using var ctx = new TDbContext();
+        using var sut = CreateLoader(
+            chunkSize: TTestData.ChunkSize,
+            maxConcurrentProducerCount: 2,
+            maxPrefetchCount: 4,
+            options: ChunkedEntityLoaderOptions.None);
+
+        var exceptions = new ConcurrentBag<Exception>();
+        var successfulCalls = 0;
+
+        var load = () =>
+        {
+            try
+            {
+                _ = sut.LoadAsync(TestContext.Current.CancellationToken);
+                Interlocked.Increment(ref successfulCalls);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+        };
+
+        // act
+        await Task.WhenAll(
+            Task.Run(load, TestContext.Current.CancellationToken),
+            Task.Run(load, TestContext.Current.CancellationToken)
+        );
+
+        // assert
+        successfulCalls.ShouldBe(1);
+        exceptions.Count.ShouldBe(1);
+        exceptions.Single().ShouldBeOfType<InvalidOperationException>();
+    }
+
     [Fact]
     public async Task LoadChunkedAsync_EnsureAllItemsHaveBeenRetrieved()
     {
@@ -65,7 +137,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
     [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, 4, 7)]
     [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, 8, 3)]
     [InlineData(ChunkedEntityLoaderOptions.PreserveChunkOrder, 10, 1)]
-    public async Task LoadChunkedAsync_ArgumentsIsHonored(ChunkedEntityLoaderOptions options, int maxConcurrentProducerCount, int maxPrefetchCount)
+    public async Task LoadChunkedAsync_ArgumentsAreHonored(ChunkedEntityLoaderOptions options, int maxConcurrentProducerCount, int maxPrefetchCount)
     {
         // arrange
         await using var ctx = new TDbContext();
@@ -80,7 +152,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
         await foreach (var _ in sut.LoadAsync(TestContext.Current.CancellationToken))
         {
             // Simulate some processing time for each chunk
-            await Task.Delay(TimeSpan.FromMilliseconds(100), TestContext.Current.CancellationToken);
+            await Task.Delay(Random.Shared.Next(100, 150), TestContext.Current.CancellationToken);
         }
 
         // assert

@@ -4,9 +4,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking" Version="1.0.0-prerelease.31"/>
-        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking.DependencyInjection" Version="1.0.0-prerelease.31"/>
-        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking.Linq" Version="1.0.0-prerelease.31"/>
+        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking" Version="1.0.0.47"/>
+        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking.DependencyInjection" Version="1.0.0.47"/>
+        <PackageVersion Include="EntityFrameworkCore.ConcurrentChunking.Linq" Version="1.0.0.47"/>
         <PackageVersion Include="JunitXml.TestLogger" Version="8.0.0"/>
         <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="[8.0.0,999.999.999]"/>
         <PackageVersion Include="Microsoft.EntityFrameworkCore.Abstractions" Version="[8.0.0,999.999.999]"/>
@@ -14,7 +14,7 @@
         <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="[8.0.0,999.999.999]"/>
         <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="[8.0.0,999.999.999]"/>
         <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="[8.0.3,999.999.999]"/>
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.1"/>
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0"/>
         <PackageVersion Include="Shouldly" Version="4.3.0"/>
         <PackageVersion Include="System.Linq.Async" Version="7.0.1"/>
         <PackageVersion Include="Testcontainers" Version="4.12.0"/>
@@ -28,11 +28,11 @@
 
     <!-- C# Analyzers -->
     <ItemGroup>
-        <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.90">
+        <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.104">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </GlobalPackageReference>
-        <GlobalPackageReference Include="SonarAnalyzer.CSharp" Version="10.26.0.140279">
+        <GlobalPackageReference Include="SonarAnalyzer.CSharp" Version="10.27.0.140913">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </GlobalPackageReference>

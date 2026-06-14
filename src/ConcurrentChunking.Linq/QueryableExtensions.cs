@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
@@ -8,7 +7,7 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
 /// <summary>
 ///     Provides extension methods for chunked asynchronous loading of entities from a queryable source.
 /// </summary>
-[SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used", Justification = "This would result is a lot of overloads.")]
+[SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used", Justification = "This would result in a lot of overloads.")]
 [SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
 public static class QueryableExtensions
 {
@@ -17,7 +16,12 @@ public static class QueryableExtensions
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
     /// <typeparam name="TDbContext">The type of the database context.</typeparam>
-    /// <param name="query">The queryable source of entities.</param>
+    /// <param name="query">
+    ///     The ordered queryable source of entities.
+    ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination),
+    ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
+    ///     It is the caller's responsibility to provide an <see cref="IOrderedQueryable{T}" /> with unique ordering.
+    /// </param>
     /// <param name="dbContextFactory">The factory to create database contexts.</param>
     /// <param name="chunkSize">The size of each chunk.</param>
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
@@ -26,9 +30,17 @@ public static class QueryableExtensions
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown when <paramref name="query" /> or <paramref name="dbContextFactory" />
+    ///     is <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown when the query does not include an explicit <c>OrderBy</c>/
+    ///     <c>OrderByDescending</c>.
+    /// </exception>
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
-        this IQueryable<TEntity> query,
+        this IOrderedQueryable<TEntity> query,
         IDbContextFactory<TDbContext> dbContextFactory,
         int chunkSize,
         int maxConcurrentProducerCount,
@@ -39,24 +51,28 @@ public static class QueryableExtensions
     )
         where TEntity : class
         where TDbContext : DbContext
-        => LoadChunkedAsync
-        (
-            query,
-            dbContextFactory.CreateDbContext,
-            chunkSize,
-            maxConcurrentProducerCount,
-            maxPrefetchCount,
-            options,
-            loggerFactory,
-            cancellationToken
-        );
+        =>
+            query.LoadChunkedAsync
+            (dbContextFactory.CreateDbContext,
+                chunkSize,
+                maxConcurrentProducerCount,
+                maxPrefetchCount,
+                options,
+                loggerFactory,
+                cancellationToken
+            );
 
     /// <summary>
     ///     Loads entities in chunks asynchronously using a function to create database contexts.
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
     /// <typeparam name="TDbContext">The type of the database context.</typeparam>
-    /// <param name="query">The queryable source of entities.</param>
+    /// <param name="query">
+    ///     The ordered queryable source of entities.
+    ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination),
+    ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
+    ///     It is the caller's responsibility to provide an <see cref="IOrderedQueryable{T}" /> with unique ordering.
+    /// </param>
     /// <param name="dbContextFactory">The function to create database contexts.</param>
     /// <param name="chunkSize">The size of each chunk.</param>
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
@@ -65,26 +81,48 @@ public static class QueryableExtensions
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
-    public static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown when <paramref name="query" /> or <paramref name="dbContextFactory" />
+    ///     is <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown when the query does not include an explicit <c>OrderBy</c>/
+    ///     <c>OrderByDescending</c>.
+    /// </exception>
+    public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
-        this IQueryable<TEntity> query,
+        this IOrderedQueryable<TEntity> query,
         Func<TDbContext> dbContextFactory,
         int chunkSize,
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILoggerFactory? loggerFactory = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
+        in CancellationToken cancellationToken = default
     )
         where TEntity : class
         where TDbContext : DbContext
     {
-        EnsureIsOrderedQuery(query.Expression);
+        ValidateLoadChunkedArguments(query, dbContextFactory);
+        return LoadChunkedCoreAsync(query, dbContextFactory, chunkSize, maxConcurrentProducerCount, maxPrefetchCount, options, loggerFactory, cancellationToken);
+    }
 
+    private static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedCoreAsync<TEntity, TDbContext>
+    (
+        IOrderedQueryable<TEntity> query,
+        Func<TDbContext> dbContextFactory,
+        int chunkSize,
+        int maxConcurrentProducerCount,
+        int maxPrefetchCount,
+        ChunkedEntityLoaderOptions options,
+        ILoggerFactory? loggerFactory,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+        where TEntity : class
+        where TDbContext : DbContext
+    {
         var entityQueryRootExpression = EntityQueryRootExpressionExtractor.Extract(query.Expression)
                                         ?? throw new InvalidOperationException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
-        await using var newDbContext = dbContextFactory();
         var rootEntityType = entityQueryRootExpression.EntityType.ClrType;
 
         using ChunkedEntityLoader<TDbContext, TEntity> loader = new
@@ -105,24 +143,37 @@ public static class QueryableExtensions
         }
     }
 
-    private static void EnsureIsOrderedQuery(Expression expression)
+    private static void ValidateLoadChunkedArguments<TEntity, TDbContext>(IOrderedQueryable<TEntity> query, Func<TDbContext> dbContextFactory)
+        where TEntity : class
+        where TDbContext : DbContext
     {
-        if (QueryExpressionChecker.HasOrderBy(expression))
-        {
-            return;
-        }
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(dbContextFactory);
 
-        throw new InvalidOperationException($"The query must have a '{nameof(Queryable.OrderBy)}' or '{nameof(Queryable.OrderByDescending)}' clause to ensure consistent chunking.");
+        if (!QueryExpressionChecker.HasOrderBy(query.Expression))
+        {
+            throw new InvalidOperationException("The query must include an explicit OrderBy/OrderByDescending before calling LoadChunkedAsync.");
+        }
     }
 
-    private static IOrderedQueryable<TResultEntity> ApplyQueryToDbContext<TResultEntity>(DbContext dbContext, Type entityType, IQueryable<TResultEntity> sourceQuery)
+    private static IOrderedQueryable<TResultEntity> ApplyQueryToDbContext<TResultEntity>(DbContext dbContext, Type entityType, IOrderedQueryable<TResultEntity> sourceQuery)
         where TResultEntity : class
     {
         var dbSetAccessor = DbSetAccessorFactory.CreateDbSetAccessor(entityType);
         var queryable = dbSetAccessor(dbContext);
 
-        return (IOrderedQueryable<TResultEntity>) queryable
-                                                 .Provider
-                                                 .CreateQuery(sourceQuery.Expression);
+        var result = queryable
+                    .Provider
+                    .CreateQuery(sourceQuery.Expression);
+
+        if (result is not IOrderedQueryable<TResultEntity> orderedResult)
+        {
+            throw new InvalidOperationException(
+                "Failed to reconstruct an IOrderedQueryable<" + typeof(TResultEntity).Name + "> from the query expression. " +
+                "Ensure the query provided is properly ordered by unique column(s). " +
+                "It is the caller's responsibility to provide an IOrderedQueryable with deterministic and unique ordering.");
+        }
+
+        return orderedResult;
     }
 }

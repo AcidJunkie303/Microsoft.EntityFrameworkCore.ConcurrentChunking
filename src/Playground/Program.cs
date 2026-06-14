@@ -17,8 +17,8 @@ internal static class Program
         try
         {
             var chunks = await ctx.SimpleEntities
-                                  .OrderBy(a => a.Id)
                                   .AsNoTracking()
+                                  .OrderBy(a => a.Id)
                                   .LoadChunkedAsync(
                                        () => new SqlServerDbContext(),
                                        chunkSize: 100_000,

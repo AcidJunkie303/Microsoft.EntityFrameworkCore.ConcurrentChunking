@@ -93,6 +93,7 @@ dotnet_diagnostic.ca2016.severity = error
 dotnet_diagnostic.ca2200.severity = error
 dotnet_diagnostic.ca3076.severity = error
 dotnet_diagnostic.ca3077.severity = error
+dotnet_diagnostic.ca5394.severity = none # Do not use insecure randomness -> We don't use any randomness that serves a security purpose, so we don't need to use a secure random number generator
 dotnet_diagnostic.cs8019.severity = error
 dotnet_diagnostic.cs8020.severity = error
 dotnet_diagnostic.ide0001.severity = error
