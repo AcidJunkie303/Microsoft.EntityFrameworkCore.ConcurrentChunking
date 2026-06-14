@@ -45,9 +45,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     <see cref="IDbContextFactory{TDbContext}" />.
     /// </summary>
     /// <param name="dbContextFactory">Factory to create database contexts.</param>
-    /// <param name="chunkSize">The size of each chunk.</param>
-    /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers.</param>
-    /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch.</param>
+    /// <param name="chunkSize">The size of each chunk. Must be at least 1.</param>
+    /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers. Must be at least 1.</param>
+    /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch. Must be at least 1.</param>
     /// <param name="sourceQueryProvider">
     ///     Function to provide the ordered query for retrieving entities.
     ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination)
@@ -57,6 +57,14 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// <param name="options">Loader options.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown when <paramref name="dbContextFactory" /> or
+    ///     <paramref name="sourceQueryProvider" /> is <see langword="null" />.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown when <paramref name="chunkSize" />,
+    ///     <paramref name="maxConcurrentProducerCount" />, or <paramref name="maxPrefetchCount" /> is less than 1.
+    /// </exception>
     [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used")]
     public ChunkedEntityLoader
     (
@@ -88,9 +96,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     create database contexts.
     /// </summary>
     /// <param name="dbContextFactory">Function to create database contexts.</param>
-    /// <param name="chunkSize">The size of each chunk.</param>
-    /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers.</param>
-    /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch.</param>
+    /// <param name="chunkSize">The size of each chunk. Must be at least 1.</param>
+    /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers. Must be at least 1.</param>
+    /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch. Must be at least 1.</param>
     /// <param name="sourceQueryProvider">
     ///     Function to provide the ordered query for retrieving entities.
     ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination)
@@ -100,6 +108,14 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// <param name="options">Loader options.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown when <paramref name="dbContextFactory" /> or
+    ///     <paramref name="sourceQueryProvider" /> is <see langword="null" />.
+    /// </exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    ///     Thrown when <paramref name="chunkSize" />,
+    ///     <paramref name="maxConcurrentProducerCount" />, or <paramref name="maxPrefetchCount" /> is less than 1.
+    /// </exception>
     [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used")]
     public ChunkedEntityLoader
     (
@@ -139,7 +155,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InvalidOperationException">Thrown when this method is called more than once on the same instance.</exception>
     public IAsyncEnumerable<Chunk<TEntity>> LoadAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref _isUsed, 1) == 1)
@@ -226,7 +242,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, MaxPrefetchCount={MaxPrefetchCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
                 EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, _prefetchLimiterSemaphore.CurrentCount, entityCount, chunkCount);
 
-            var tasks = new List<Task>(_maxConcurrentProducerCount*3);
+            var tasks = new List<Task>(_maxConcurrentProducerCount * 3);
 
             for (var i = 0; i < chunkCount && !HasErrors; i++)
             {

@@ -12,7 +12,8 @@ public enum ChunkedEntityLoaderOptions
     None = 0,
 
     /// <summary>
-    ///     Ensures that chunks are processed in the order they are retrieved.
+    ///     Ensures that chunks are yielded to the consumer in ascending chunk index order,
+    ///     regardless of the order in which they are retrieved from the database.
     /// </summary>
     PreserveChunkOrder = 1
 }

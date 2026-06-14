@@ -14,10 +14,15 @@ public interface IChunkedEntityLoaderFactory<out TDbContext>
     ///     Creates a new <see cref="IChunkedEntityLoader{TEntity}" /> for the specified entity type.
     /// </summary>
     /// <typeparam name="TEntity">The entity type to load.</typeparam>
-    /// <param name="chunkSize">The number of entities to load per chunk.</param>
-    /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
-    /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
-    /// <param name="sourceQueryProvider">A function that provides the source query for the entity type.</param>
+    /// <param name="chunkSize">The number of entities to load per chunk. Must be at least 1.</param>
+    /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers. Must be at least 1.</param>
+    /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch. Must be at least 1.</param>
+    /// <param name="sourceQueryProvider">
+    ///     A function that provides the ordered source query for the entity type.
+    ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination)
+    ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
+    ///     It is the caller's responsibility to ensure the ordering includes unique columns.
+    /// </param>
     /// <param name="options">Loader options.</param>
     /// <param name="useLogging">Whether to enable logging.</param>
     /// <returns>An <see cref="IChunkedEntityLoader{TEntity}" /> instance.</returns>

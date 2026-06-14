@@ -7,7 +7,7 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.Linq;
 /// <summary>
 ///     Provides extension methods for chunked asynchronous loading of entities from a queryable source.
 /// </summary>
-[SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used", Justification = "This would result is a lot of overloads.")]
+[SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used", Justification = "This would result in a lot of overloads.")]
 [SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
 public static class QueryableExtensions
 {
@@ -30,6 +30,14 @@ public static class QueryableExtensions
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown when <paramref name="query" /> or <paramref name="dbContextFactory" />
+    ///     is <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown when the query does not include an explicit <c>OrderBy</c>/
+    ///     <c>OrderByDescending</c>.
+    /// </exception>
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
         this IOrderedQueryable<TEntity> query,
@@ -73,7 +81,14 @@ public static class QueryableExtensions
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown when <paramref name="query" /> or <paramref name="dbContextFactory" />
+    ///     is <see langword="null" />.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown when the query does not include an explicit <c>OrderBy</c>/
+    ///     <c>OrderByDescending</c>.
+    /// </exception>
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
         this IOrderedQueryable<TEntity> query,

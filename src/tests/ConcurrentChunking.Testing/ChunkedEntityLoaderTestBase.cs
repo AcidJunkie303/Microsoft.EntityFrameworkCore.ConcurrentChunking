@@ -152,7 +152,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
         await foreach (var _ in sut.LoadAsync(TestContext.Current.CancellationToken))
         {
             // Simulate some processing time for each chunk
-            await Task.Delay(Random.Shared.Next(5, 50), TestContext.Current.CancellationToken);
+            await Task.Delay(Random.Shared.Next(100, 150), TestContext.Current.CancellationToken);
         }
 
         // assert
