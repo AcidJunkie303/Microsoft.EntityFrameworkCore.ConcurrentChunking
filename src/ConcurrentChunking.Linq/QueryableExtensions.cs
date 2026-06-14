@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
@@ -17,7 +16,12 @@ public static class QueryableExtensions
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
     /// <typeparam name="TDbContext">The type of the database context.</typeparam>
-    /// <param name="query">The queryable source of entities.</param>
+    /// <param name="query">
+    ///     The ordered queryable source of entities.
+    ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination),
+    ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
+    ///     It is the caller's responsibility to provide an <see cref="IOrderedQueryable{T}" /> with unique ordering.
+    /// </param>
     /// <param name="dbContextFactory">The factory to create database contexts.</param>
     /// <param name="chunkSize">The size of each chunk.</param>
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
@@ -28,7 +32,7 @@ public static class QueryableExtensions
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
     public static IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
-        this IQueryable<TEntity> query,
+        this IOrderedQueryable<TEntity> query,
         IDbContextFactory<TDbContext> dbContextFactory,
         int chunkSize,
         int maxConcurrentProducerCount,
@@ -39,24 +43,28 @@ public static class QueryableExtensions
     )
         where TEntity : class
         where TDbContext : DbContext
-        => LoadChunkedAsync
-        (
-            query,
-            dbContextFactory.CreateDbContext,
-            chunkSize,
-            maxConcurrentProducerCount,
-            maxPrefetchCount,
-            options,
-            loggerFactory,
-            cancellationToken
-        );
+        =>
+            query.LoadChunkedAsync
+            (dbContextFactory.CreateDbContext,
+                chunkSize,
+                maxConcurrentProducerCount,
+                maxPrefetchCount,
+                options,
+                loggerFactory,
+                cancellationToken
+            );
 
     /// <summary>
     ///     Loads entities in chunks asynchronously using a function to create database contexts.
     /// </summary>
     /// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
     /// <typeparam name="TDbContext">The type of the database context.</typeparam>
-    /// <param name="query">The queryable source of entities.</param>
+    /// <param name="query">
+    ///     The ordered queryable source of entities.
+    ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination),
+    ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
+    ///     It is the caller's responsibility to provide an <see cref="IOrderedQueryable{T}" /> with unique ordering.
+    /// </param>
     /// <param name="dbContextFactory">The function to create database contexts.</param>
     /// <param name="chunkSize">The size of each chunk.</param>
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
@@ -68,7 +76,7 @@ public static class QueryableExtensions
     /// <exception cref="InvalidOperationException"></exception>
     public static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedAsync<TEntity, TDbContext>
     (
-        this IQueryable<TEntity> query,
+        this IOrderedQueryable<TEntity> query,
         Func<TDbContext> dbContextFactory,
         int chunkSize,
         int maxConcurrentProducerCount,
@@ -80,8 +88,6 @@ public static class QueryableExtensions
         where TEntity : class
         where TDbContext : DbContext
     {
-        EnsureIsOrderedQuery(query.Expression);
-
         var entityQueryRootExpression = EntityQueryRootExpressionExtractor.Extract(query.Expression)
                                         ?? throw new InvalidOperationException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
         await using var newDbContext = dbContextFactory();
@@ -105,24 +111,24 @@ public static class QueryableExtensions
         }
     }
 
-    private static void EnsureIsOrderedQuery(Expression expression)
-    {
-        if (QueryExpressionChecker.HasOrderBy(expression))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException($"The query must have a '{nameof(Queryable.OrderBy)}' or '{nameof(Queryable.OrderByDescending)}' clause to ensure consistent chunking.");
-    }
-
-    private static IOrderedQueryable<TResultEntity> ApplyQueryToDbContext<TResultEntity>(DbContext dbContext, Type entityType, IQueryable<TResultEntity> sourceQuery)
+    private static IOrderedQueryable<TResultEntity> ApplyQueryToDbContext<TResultEntity>(DbContext dbContext, Type entityType, IOrderedQueryable<TResultEntity> sourceQuery)
         where TResultEntity : class
     {
         var dbSetAccessor = DbSetAccessorFactory.CreateDbSetAccessor(entityType);
         var queryable = dbSetAccessor(dbContext);
 
-        return (IOrderedQueryable<TResultEntity>) queryable
-                                                 .Provider
-                                                 .CreateQuery(sourceQuery.Expression);
+        var result = queryable
+                    .Provider
+                    .CreateQuery(sourceQuery.Expression);
+
+        if (result is not IOrderedQueryable<TResultEntity> orderedResult)
+        {
+            throw new InvalidOperationException(
+                "Failed to reconstruct an IOrderedQueryable<" + typeof(TResultEntity).Name + "> from the query expression. " +
+                "Ensure the query provided is properly ordered by unique column(s). " +
+                "It is the caller's responsibility to provide an IOrderedQueryable with deterministic and unique ordering.");
+        }
+
+        return orderedResult;
     }
 }

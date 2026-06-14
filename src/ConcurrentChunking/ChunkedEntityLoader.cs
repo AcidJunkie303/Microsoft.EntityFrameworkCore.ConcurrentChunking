@@ -26,6 +26,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly SemaphoreSlim _producerLimiterSemaphore;
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _chunkSize;
+    private bool _isUsed;
 
 #pragma warning disable S2325
     private bool HasErrors
@@ -46,7 +47,12 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// <param name="chunkSize">The size of each chunk.</param>
     /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch.</param>
-    /// <param name="sourceQueryProvider">Function to provide the query for retrieving entities.</param>
+    /// <param name="sourceQueryProvider">
+    ///     Function to provide the ordered query for retrieving entities.
+    ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination)
+    ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
+    ///     It is the caller's responsibility to ensure the ordering includes unique columns.
+    /// </param>
     /// <param name="options">Loader options.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
@@ -84,7 +90,12 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// <param name="chunkSize">The size of each chunk.</param>
     /// <param name="maxConcurrentProducerCount">Maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">Maximum number of chunks to prefetch.</param>
-    /// <param name="sourceQueryProvider">Function to provide the query for retrieving entities.</param>
+    /// <param name="sourceQueryProvider">
+    ///     Function to provide the ordered query for retrieving entities.
+    ///     The ordering must be deterministic and use unique column(s) (single unique key or unique key combination)
+    ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
+    ///     It is the caller's responsibility to ensure the ordering includes unique columns.
+    /// </param>
     /// <param name="options">Loader options.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
@@ -126,20 +137,32 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// </summary>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks.</returns>
-    public async IAsyncEnumerable<Chunk<TEntity>> LoadAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    /// <exception cref="InvalidOperationException"></exception>
+    public IAsyncEnumerable<Chunk<TEntity>> LoadAsync(CancellationToken cancellationToken)
     {
-        HasErrors = false;
-        var producersTask = StartProducersAsync(cancellationToken);
-        var channelReader = CreateChannelReader();
-
-        await foreach (var chunk in channelReader.ReadAsync(cancellationToken))
+        if (_isUsed)
         {
-            StatisticsMonitor?.DecrementQueueSize();
-            _prefetchLimiterSemaphore.Release();
-            yield return chunk;
+            throw new InvalidOperationException("This loader instance has already been used. Please create a new instance for each load operation.");
         }
 
-        await producersTask;
+        _isUsed = true;
+
+        return LoadCoreAsync(cancellationToken);
+
+        async IAsyncEnumerable<Chunk<TEntity>> LoadCoreAsync([EnumeratorCancellation] CancellationToken ct)
+        {
+            var producersTask = StartProducersAsync(ct);
+            var channelReader = CreateChannelReader();
+
+            await foreach (var chunk in channelReader.ReadAsync(ct))
+            {
+                StatisticsMonitor?.DecrementQueueSize();
+                _prefetchLimiterSemaphore.Release();
+                yield return chunk;
+            }
+
+            await producersTask;
+        }
     }
 
     /// <summary>
