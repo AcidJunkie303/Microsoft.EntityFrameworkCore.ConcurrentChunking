@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -379,7 +380,37 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     }
 
     private async Task<IDbContextTransaction?> BeginUncommittedReadTransactionIfRequestedAsync(DbContext dbContext, CancellationToken cancellationToken)
-        => _allowUncommittedReads
-            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted, cancellationToken)
-            : null;
+    {
+        if (!_allowUncommittedReads)
+        {
+            _logger?.LogTrace("No uncommitted read requested; Therefore, no transaction was created");
+            return null;
+        }
+
+        _logger?.LogTrace("Beginning uncommitted read transaction on DbContext");
+        var trx = await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted, cancellationToken);
+
+        _logger?.LogTrace("Transaction with uncommitted read transaction started. TransactionId={TransactionId} SupportsSavepoints={SupportsSavepoints}", trx.TransactionId, trx.SupportsSavepoints);
+
+        var dbTrx = TryGetDbTransaction(trx);
+        if (dbTrx is not null)
+        {
+            _logger?.LogTrace("Transaction is of type DbTransaction. IsolationLevel={IsolationLevel}", dbTrx.IsolationLevel);
+        }
+
+        return trx;
+    }
+
+    private DbTransaction? TryGetDbTransaction(IDbContextTransaction dbContextTransaction)
+    {
+        try
+        {
+            return dbContextTransaction.GetDbTransaction();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Unable to get underlying DbTransaction from DbContext.");
+            return null;
+        }
+    }
 }
