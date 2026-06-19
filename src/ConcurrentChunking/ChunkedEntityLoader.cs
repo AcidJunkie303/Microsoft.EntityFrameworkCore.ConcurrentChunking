@@ -1,7 +1,9 @@
+using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
@@ -19,6 +21,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private static readonly string EntityTypeName = typeof(TEntity).Name;
     private readonly Func<TDbContext, IOrderedQueryable<TEntity>> _sourceQueryProvider;
     private readonly ChunkedEntityLoaderOptions _options;
+    private readonly bool _allowUncommittedReads;
     private readonly ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? _logger;
     private readonly ILoggerFactory? _loggerFactory;
     private readonly Channel<Chunk<TEntity>> _channel;
@@ -55,6 +58,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     It is the caller's responsibility to ensure the ordering includes unique columns.
     /// </param>
     /// <param name="options">Loader options.</param>
+    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
     /// <exception cref="ArgumentNullException">
@@ -74,6 +78,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
+        bool allowUncommittedReads = false,
         ILoggerFactory? loggerFactory = null,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
@@ -85,6 +90,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             maxPrefetchCount,
             sourceQueryProvider,
             options,
+            allowUncommittedReads,
             loggerFactory,
             logger
         )
@@ -106,6 +112,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     It is the caller's responsibility to ensure the ordering includes unique columns.
     /// </param>
     /// <param name="options">Loader options.</param>
+    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
     /// <exception cref="ArgumentNullException">
@@ -125,6 +132,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
+        bool allowUncommittedReads = false,
         ILoggerFactory? loggerFactory = null,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
@@ -138,6 +146,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         _sourceQueryProvider = sourceQueryProvider;
         _loggerFactory = loggerFactory;
         _options = options;
+        _allowUncommittedReads = allowUncommittedReads;
         _logger = logger;
         _dbContextFactory = dbContextFactory;
         _chunkSize = chunkSize;
@@ -291,6 +300,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         try
         {
             await using var context = _dbContextFactory();
+            await using var trx = await BeginUncommittedReadTransactionIfRequestedAsync(context, cancellationToken);
             var query = _sourceQueryProvider(context);
             var startIndex = checked(chunkIndex * _chunkSize);
 
@@ -336,6 +346,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private async Task<long> GetExpectedEntityCountAsync(CancellationToken cancellationToken)
     {
         await using var context = _dbContextFactory();
+        await using var trx = await BeginUncommittedReadTransactionIfRequestedAsync(context, cancellationToken);
 
         _logger?.LogTrace("Getting total expected entity count for EntityTypeName={EntityTypeName}", EntityTypeName);
         var count = await _sourceQueryProvider(context).LongCountAsync(cancellationToken);
@@ -366,4 +377,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
         return (int) chunkCountLong;
     }
+
+    private async Task<IDbContextTransaction?> BeginUncommittedReadTransactionIfRequestedAsync(DbContext dbContext, CancellationToken cancellationToken)
+        => _allowUncommittedReads
+            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted, cancellationToken)
+            : null;
 }
