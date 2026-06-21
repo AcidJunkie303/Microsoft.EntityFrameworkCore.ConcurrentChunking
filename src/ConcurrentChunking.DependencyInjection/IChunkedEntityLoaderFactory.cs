@@ -25,7 +25,7 @@ public interface IChunkedEntityLoaderFactory<out TDbContext>
     /// </param>
     /// <param name="options">Loader options.</param>
     /// <param name="useLogging">Whether to enable logging.</param>
-    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts</param>
+    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
     /// <returns>An <see cref="IChunkedEntityLoader{TEntity}" /> instance.</returns>
     [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used")]
     IChunkedEntityLoader<TEntity> Create<TEntity>

@@ -68,7 +68,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     It is the caller's responsibility to ensure the ordering includes unique columns.
     /// </param>
     /// <param name="options">Loader options.</param>
-    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
+    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
     /// <exception cref="ArgumentNullException">
@@ -122,7 +122,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     It is the caller's responsibility to ensure the ordering includes unique columns.
     /// </param>
     /// <param name="options">Loader options.</param>
-    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
+    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
     /// <exception cref="ArgumentNullException">
@@ -175,37 +175,42 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks.</returns>
     /// <exception cref="InvalidOperationException">Thrown when this method is called more than once on the same instance.</exception>
-    public async IAsyncEnumerable<Chunk<TEntity>> LoadAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public IAsyncEnumerable<Chunk<TEntity>> LoadAsync(CancellationToken cancellationToken)
     {
         AssertSingleUsage();
 
-        using var producerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var producersTask = StartProducersAsync(producerCancellationTokenSource.Token);
-        var channelReader = CreateChannelReader();
+        return LoadCoreAsync(cancellationToken);
 
-        try
+        async IAsyncEnumerable<Chunk<TEntity>> LoadCoreAsync([EnumeratorCancellation] CancellationToken ct)
         {
-            await foreach (var chunk in channelReader.ReadAsync(cancellationToken))
-            {
-                StatisticsMonitor?.DecrementQueueSize();
-                _prefetchLimiterSemaphore.Release();
-                yield return chunk;
-            }
-        }
-        finally
-        {
-            if (!producersTask.IsCompleted)
-            {
-                await producerCancellationTokenSource.CancelAsync();
-            }
+            using var producerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var producersTask = StartProducersAsync(producerCancellationTokenSource.Token);
+            var channelReader = CreateChannelReader();
 
             try
             {
-                await producersTask;
+                await foreach (var chunk in channelReader.ReadAsync(ct))
+                {
+                    StatisticsMonitor?.DecrementQueueSize();
+                    _prefetchLimiterSemaphore.Release();
+                    yield return chunk;
+                }
             }
-            catch (OperationCanceledException) when (producerCancellationTokenSource.IsCancellationRequested)
+            finally
             {
-                // Cancellation is expected when the consumer stops enumeration early.
+                if (!producersTask.IsCompleted)
+                {
+                    await producerCancellationTokenSource.CancelAsync();
+                }
+
+                try
+                {
+                    await producersTask;
+                }
+                catch (OperationCanceledException) when (producerCancellationTokenSource.IsCancellationRequested)
+                {
+                    // Cancellation is expected when the consumer stops enumeration early.
+                }
             }
         }
     }
@@ -254,6 +259,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     {
         await Task.Yield();
 
+        var tasks = new List<Task>(_maxConcurrentProducerCount * 3);
+        Exception? completionException = null;
+
         try
         {
             var entityCount = await GetExpectedEntityCountAsync(cancellationToken);
@@ -261,8 +269,6 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
 
             _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, MaxPrefetchCount={MaxPrefetchCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
                 EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, _prefetchLimiterSemaphore.CurrentCount, entityCount, chunkCount);
-
-            var tasks = new List<Task>(_maxConcurrentProducerCount * 3);
 
             for (var i = 0; i < chunkCount && !HasErrors; i++)
             {
@@ -278,19 +284,36 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
                 await RemoveCompletedTasksIfNecessaryAsync(tasks, _maxConcurrentProducerCount, force: false);
                 ChunkProductionEnd?.Invoke(currentChunkIndex);
             }
-
-            await Task.WhenAll(tasks);
-            _channel.Writer.TryComplete();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _channel.Writer.TryComplete();
+            // Linked producer token cancellation is expected (caller cancellation or early-stop cancellation).
+            // Producer tasks are awaited in finally before channel completion.
         }
         catch (Exception ex)
         {
             HasErrors = true;
             _logger?.LogError(ex, "Exception in StartProducersAsync.");
-            _channel.Writer.TryComplete(ex);
+            completionException = ex;
+        }
+        finally
+        {
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Expected when producer cancellation is requested.
+            }
+            catch (Exception ex)
+            {
+                HasErrors = true;
+                _logger?.LogError(ex, "Exception while awaiting producer tasks.");
+                completionException ??= ex;
+            }
+
+            _channel.Writer.TryComplete(completionException);
         }
     }
 

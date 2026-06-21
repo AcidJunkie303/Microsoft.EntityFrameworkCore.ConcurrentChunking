@@ -9,11 +9,16 @@
         <Description>
             Allows parallel and pre-emptive loading of entities in a chunk-wise manner, resulting in much faster data access over time. This package provides LINQ extension methods for the ConcurrentChunking library.
         </Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <IncludeSymbols>true</IncludeSymbols>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\ConcurrentChunking\ConcurrentChunking.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\" Link="README.md"/>
     </ItemGroup>
 
 </Project>

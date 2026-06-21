@@ -27,7 +27,7 @@ public static class QueryableExtensions
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
-    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
+    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
@@ -82,7 +82,7 @@ public static class QueryableExtensions
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
-    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
+    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
