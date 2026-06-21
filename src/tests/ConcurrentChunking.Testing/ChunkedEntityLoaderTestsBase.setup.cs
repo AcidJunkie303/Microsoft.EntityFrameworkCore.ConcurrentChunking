@@ -18,10 +18,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
     {
     }
 
-    private static bool IsChunkOrderSequential<T>(in List<Chunk<T>> chunks)
-        => !chunks.Where((chunk, i) => chunk.ChunkIndex != i).Any();
-
-    private ChunkedEntityLoader<TDbContext, SimpleEntity> CreateLoader
+    protected ChunkedEntityLoader<TDbContext, SimpleEntity> CreateLoader
     (
         int chunkSize,
         int maxConcurrentProducerCount,
@@ -44,4 +41,7 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
             ChunkProductionStarted = chunkProductionStartedCallback
         };
     }
+
+    private static bool IsChunkOrderSequential<T>(in List<Chunk<T>> chunks)
+        => !chunks.Where((chunk, i) => chunk.ChunkIndex != i).Any();
 }

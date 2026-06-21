@@ -1,0 +1,6 @@
+root = false
+
+[*.cs]
+
+dotnet_diagnostic.S4261.severity = none     # S4261 : Add the 'Async' suffix to the name of this method.                   -> we don't want to force it in tests
+dotnet_diagnostic.S2360.severity = none     # S2360 : Use the overloading mechanism instead of the optional parameters.    -> we don't want to force it in tests

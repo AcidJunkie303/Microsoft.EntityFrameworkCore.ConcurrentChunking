@@ -31,7 +31,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _maxConcurrentProducerCount;
     private readonly int _chunkSize;
-    private int _isUsed;
+    private int _usageCounter;
 
 #pragma warning disable S2325
     private bool HasErrors
@@ -41,8 +41,17 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         set => Volatile.Write(ref field, value);
     }
 
+    internal Action<int>? ChunkProductionEnd { get; set; }
+    internal Action<int>? ChunkProductionInnerEnd { get; set; }
+    internal Action<int>? ChunkProductionInnerStart { get; set; }
+    internal Action<int>? ChunkProductionStart { get; set; }
     internal Func<int, Task>? ChunkProductionStarted { get; set; }
     internal StatisticsMonitor? StatisticsMonitor { get; set; }
+
+    /// <summary>
+    ///     Used internally to do callbacks to the caller. This is used to simulate failures during unit tests.
+    /// </summary>
+    internal CallbackWhenKind? CallbackWhenKind { get; set; }
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="ChunkedEntityLoader{TDbContext, TEntity}" /> class using an
@@ -166,45 +175,37 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks.</returns>
     /// <exception cref="InvalidOperationException">Thrown when this method is called more than once on the same instance.</exception>
-    public IAsyncEnumerable<Chunk<TEntity>> LoadAsync(CancellationToken cancellationToken)
+    public async IAsyncEnumerable<Chunk<TEntity>> LoadAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        if (Interlocked.Exchange(ref _isUsed, 1) == 1)
+        AssertSingleUsage();
+
+        using var producerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var producersTask = StartProducersAsync(producerCancellationTokenSource.Token);
+        var channelReader = CreateChannelReader();
+
+        try
         {
-            throw new InvalidOperationException("This loader instance has already been used. Please create a new instance for each load operation.");
+            await foreach (var chunk in channelReader.ReadAsync(cancellationToken))
+            {
+                StatisticsMonitor?.DecrementQueueSize();
+                _prefetchLimiterSemaphore.Release();
+                yield return chunk;
+            }
         }
-
-        return LoadCoreAsync(cancellationToken);
-
-        async IAsyncEnumerable<Chunk<TEntity>> LoadCoreAsync([EnumeratorCancellation] CancellationToken ct)
+        finally
         {
-            using var producerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            var producersTask = StartProducersAsync(producerCancellationTokenSource.Token);
-            var channelReader = CreateChannelReader();
+            if (!producersTask.IsCompleted)
+            {
+                await producerCancellationTokenSource.CancelAsync();
+            }
 
             try
             {
-                await foreach (var chunk in channelReader.ReadAsync(ct))
-                {
-                    StatisticsMonitor?.DecrementQueueSize();
-                    _prefetchLimiterSemaphore.Release();
-                    yield return chunk;
-                }
+                await producersTask;
             }
-            finally
+            catch (OperationCanceledException) when (producerCancellationTokenSource.IsCancellationRequested)
             {
-                if (!producersTask.IsCompleted)
-                {
-                    await producerCancellationTokenSource.CancelAsync();
-                }
-
-                try
-                {
-                    await producersTask;
-                }
-                catch (OperationCanceledException) when (producerCancellationTokenSource.IsCancellationRequested)
-                {
-                    // Cancellation is expected when the consumer stops enumeration early.
-                }
+                // Cancellation is expected when the consumer stops enumeration early.
             }
         }
     }
@@ -240,6 +241,15 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         }
     }
 
+    private void AssertSingleUsage()
+    {
+        var usageCount = Interlocked.Increment(ref _usageCounter);
+        if (usageCount > 1)
+        {
+            throw new InvalidOperationException($"The {nameof(ChunkedEntityLoader<,>)} instance can only be used for a single enumeration. Current usage count: {usageCount}.");
+        }
+    }
+
     private async Task StartProducersAsync(CancellationToken cancellationToken)
     {
         await Task.Yield();
@@ -257,6 +267,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             for (var i = 0; i < chunkCount && !HasErrors; i++)
             {
                 var currentChunkIndex = i;
+                ChunkProductionStart?.Invoke(currentChunkIndex);
 
                 await _prefetchLimiterSemaphore.WaitAsync(cancellationToken);
                 await _producerLimiterSemaphore.WaitAsync(cancellationToken);
@@ -265,6 +276,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
                 tasks.Add(task);
 
                 await RemoveCompletedTasksIfNecessaryAsync(tasks, _maxConcurrentProducerCount, force: false);
+                ChunkProductionEnd?.Invoke(currentChunkIndex);
             }
 
             await Task.WhenAll(tasks);
@@ -287,7 +299,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         try
         {
             StatisticsMonitor?.IncrementActiveProducer();
+            ChunkProductionInnerStart?.Invoke(chunkIndex);
             await ProduceAsync(chunkIndex, cancellationToken);
+            ChunkProductionInnerEnd?.Invoke(chunkIndex);
         }
         finally
         {

@@ -27,6 +27,7 @@ public static class QueryableExtensions
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
+    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
@@ -46,6 +47,7 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
+        bool allowUncommittedReads = false,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
     )
@@ -53,13 +55,15 @@ public static class QueryableExtensions
         where TDbContext : DbContext
         =>
             query.LoadChunkedAsync
-            (dbContextFactory.CreateDbContext,
-                chunkSize,
-                maxConcurrentProducerCount,
-                maxPrefetchCount,
-                options,
-                loggerFactory,
-                cancellationToken
+            (
+                dbContextFactory: dbContextFactory.CreateDbContext,
+                chunkSize: chunkSize,
+                maxConcurrentProducerCount: maxConcurrentProducerCount,
+                maxPrefetchCount: maxPrefetchCount,
+                options: options,
+                allowUncommittedReads: allowUncommittedReads,
+                loggerFactory: loggerFactory,
+                cancellationToken: cancellationToken
             );
 
     /// <summary>
@@ -78,6 +82,7 @@ public static class QueryableExtensions
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
+    /// <param name="allowUncommittedReads">Allow uncommited reads on the disjoined DbContexts.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
@@ -97,6 +102,7 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
+        bool allowUncommittedReads = false,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
     )
@@ -104,7 +110,7 @@ public static class QueryableExtensions
         where TDbContext : DbContext
     {
         ValidateLoadChunkedArguments(query, dbContextFactory);
-        return LoadChunkedCoreAsync(query, dbContextFactory, chunkSize, maxConcurrentProducerCount, maxPrefetchCount, options, loggerFactory, cancellationToken);
+        return LoadChunkedCoreAsync(query, dbContextFactory, chunkSize, maxConcurrentProducerCount, maxPrefetchCount, options, allowUncommittedReads, loggerFactory, cancellationToken);
     }
 
     private static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedCoreAsync<TEntity, TDbContext>
@@ -115,6 +121,7 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options,
+        bool allowUncommittedReads,
         ILoggerFactory? loggerFactory,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
@@ -133,6 +140,7 @@ public static class QueryableExtensions
             maxPrefetchCount: maxPrefetchCount,
             sourceQueryProvider: ctx => ApplyQueryToDbContext(ctx, rootEntityType, query),
             options: options,
+            allowUncommittedReads: allowUncommittedReads,
             loggerFactory: loggerFactory,
             logger: loggerFactory?.CreateLogger<ChunkedEntityLoader<TDbContext, TEntity>>()
         );

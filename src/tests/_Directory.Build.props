@@ -1,0 +1,8 @@
+<Project>
+
+    <PropertyGroup>
+        <!-- S4261:     Add the 'Async' suffix to the name of this method. -> we don't want to force it in Tests -->
+        <NoWarn>S4261</NoWarn>
+    </PropertyGroup>
+
+</Project>
