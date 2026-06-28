@@ -95,9 +95,7 @@ jobs:
         working-directory: ./src/tests/ConcurrentChunking.Linq.IntegrationTests
 
       - name: Pack NuGet package
-        run: >
-          dotnet pack --no-build --configuration Release
-          /p:PackageVersion=${{ steps.version.outputs.package_version }}
+        run: dotnet pack --no-build --configuration Release /p:PackageVersion=${{ steps.version.outputs.package_version }}
         working-directory: ./src
 
       - name: Upload build output
