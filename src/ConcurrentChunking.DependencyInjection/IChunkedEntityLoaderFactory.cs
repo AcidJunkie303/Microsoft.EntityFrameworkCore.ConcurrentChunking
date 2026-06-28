@@ -7,6 +7,7 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection;
 ///     using a specified <see cref="DbContext" />.
 /// </summary>
 /// <typeparam name="TDbContext">The type of <see cref="DbContext" />.</typeparam>
+[SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
 public interface IChunkedEntityLoaderFactory<out TDbContext>
     where TDbContext : DbContext
 {
@@ -23,9 +24,10 @@ public interface IChunkedEntityLoaderFactory<out TDbContext>
     ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
     ///     It is the caller's responsibility to ensure the ordering includes unique columns.
     /// </param>
+    /// <param name="startProducingChunkCallback">Callback for when a chunk is being produced.</param>
+    /// <param name="endProducingChunkCallback">Callback for when a chunk was produced.</param>
     /// <param name="options">Loader options.</param>
     /// <param name="useLogging">Whether to enable logging.</param>
-    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
     /// <returns>An <see cref="IChunkedEntityLoader{TEntity}" /> instance.</returns>
     [SuppressMessage("Critical Code Smell", "S2360:Optional parameters should not be used")]
     IChunkedEntityLoader<TEntity> Create<TEntity>
@@ -34,9 +36,10 @@ public interface IChunkedEntityLoaderFactory<out TDbContext>
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        bool useLogging = true,
-        bool allowUncommittedReads = false
+        bool useLogging = true
     )
         where TEntity : class;
 }

@@ -1,10 +1,6 @@
-using System.Data;
-using System.Data.Common;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Threading.Channels;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
@@ -22,31 +18,15 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private static readonly string EntityTypeName = typeof(TEntity).Name;
     private readonly Func<TDbContext, IOrderedQueryable<TEntity>> _sourceQueryProvider;
     private readonly ChunkedEntityLoaderOptions _options;
-    private readonly bool _allowUncommittedReads;
     private readonly ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? _logger;
-    private readonly ILoggerFactory? _loggerFactory;
-    private readonly Channel<Chunk<TEntity>> _channel;
     private readonly Func<TDbContext> _dbContextFactory;
-    private readonly SemaphoreSlim _producerLimiterSemaphore;
-    private readonly SemaphoreSlim _prefetchLimiterSemaphore;
     private readonly int _maxConcurrentProducerCount;
     private readonly int _chunkSize;
+    private readonly int _maxPrefetchCount;
+    private readonly Func<IStartCallbackArgs<TDbContext>, Task<object?>>? _startProducingChunkCallback;
+    private readonly Func<IEndCallbackArgs<TDbContext>, Task>? _endProducingChunkCallback;
     private int _usageCounter;
-
-#pragma warning disable S2325
-    private bool HasErrors
-#pragma warning restore S2325
-    {
-        get => Volatile.Read(ref field);
-        set => Volatile.Write(ref field, value);
-    }
-
-    internal Action<int>? ChunkProductionEnd { get; set; }
-    internal Action<int>? ChunkProductionInnerEnd { get; set; }
-    internal Action<int>? ChunkProductionInnerStart { get; set; }
-    internal Action<int>? ChunkProductionStart { get; set; }
-    internal Func<int, Task>? ChunkProductionStarted { get; set; }
-    internal StatisticsMonitor? StatisticsMonitor { get; set; }
+    private int _emptyChunkCounter;
 
     /// <summary>
     ///     Used internally to do callbacks to the caller. This is used to simulate failures during unit tests.
@@ -67,9 +47,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
     ///     It is the caller's responsibility to ensure the ordering includes unique columns.
     /// </param>
+    /// <param name="startProducingChunkCallback">Callback for when a chunk is being produced.</param>
+    /// <param name="endProducingChunkCallback">Callback for when a chunk was produced.</param>
     /// <param name="options">Loader options.</param>
-    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
-    /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
     /// <exception cref="ArgumentNullException">
     ///     Thrown when <paramref name="dbContextFactory" /> or
@@ -87,22 +67,21 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        bool allowUncommittedReads = false,
-        ILoggerFactory? loggerFactory = null,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
         : this
         (
-            dbContextFactory.CreateDbContext,
-            chunkSize,
-            maxConcurrentProducerCount,
-            maxPrefetchCount,
-            sourceQueryProvider,
-            options,
-            allowUncommittedReads,
-            loggerFactory,
-            logger
+            dbContextFactory: dbContextFactory.CreateDbContext,
+            chunkSize: chunkSize,
+            maxConcurrentProducerCount: maxConcurrentProducerCount,
+            maxPrefetchCount: maxPrefetchCount,
+            sourceQueryProvider: sourceQueryProvider,
+            startProducingChunkCallback: startProducingChunkCallback,
+            endProducingChunkCallback: endProducingChunkCallback, options: options,
+            logger: logger
         )
     {
     }
@@ -121,9 +100,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     ///     because chunking relies on <c>Skip</c>/<c>Take</c> pagination.
     ///     It is the caller's responsibility to ensure the ordering includes unique columns.
     /// </param>
+    /// <param name="startProducingChunkCallback">Callback for when a chunk is being produced.</param>
+    /// <param name="endProducingChunkCallback">Callback for when a chunk was produced.</param>
     /// <param name="options">Loader options.</param>
-    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
-    /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="logger">Optional logger.</param>
     /// <exception cref="ArgumentNullException">
     ///     Thrown when <paramref name="dbContextFactory" /> or
@@ -141,9 +120,9 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        bool allowUncommittedReads = false,
-        ILoggerFactory? loggerFactory = null,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
     {
@@ -154,19 +133,14 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         ArgumentNullException.ThrowIfNull(sourceQueryProvider);
 
         _sourceQueryProvider = sourceQueryProvider;
-        _loggerFactory = loggerFactory;
+        _startProducingChunkCallback = startProducingChunkCallback;
+        _endProducingChunkCallback = endProducingChunkCallback;
         _options = options;
-        _allowUncommittedReads = allowUncommittedReads;
         _logger = logger;
         _dbContextFactory = dbContextFactory;
         _chunkSize = chunkSize;
-
-        var finalMaxConcurrentProducerCount = Math.Min(maxConcurrentProducerCount, maxPrefetchCount);
-        _maxConcurrentProducerCount = finalMaxConcurrentProducerCount;
-        _producerLimiterSemaphore = new SemaphoreSlim(finalMaxConcurrentProducerCount, finalMaxConcurrentProducerCount);
-        _prefetchLimiterSemaphore = new SemaphoreSlim(maxPrefetchCount, maxPrefetchCount);
-
-        _channel = Channel.CreateUnbounded<Chunk<TEntity>>();
+        _maxPrefetchCount = maxPrefetchCount;
+        _maxConcurrentProducerCount = Math.Min(maxConcurrentProducerCount, maxPrefetchCount);
     }
 
     /// <summary>
@@ -180,71 +154,100 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         AssertSingleUsage();
 
         return LoadCoreAsync(cancellationToken);
-
-        async IAsyncEnumerable<Chunk<TEntity>> LoadCoreAsync([EnumeratorCancellation] CancellationToken ct)
-        {
-            using var producerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            var producersTask = StartProducersAsync(producerCancellationTokenSource.Token);
-            var channelReader = CreateChannelReader();
-
-            try
-            {
-                await foreach (var chunk in channelReader.ReadAsync(ct))
-                {
-                    StatisticsMonitor?.DecrementQueueSize();
-                    _prefetchLimiterSemaphore.Release();
-                    yield return chunk;
-                }
-            }
-            finally
-            {
-                if (!producersTask.IsCompleted)
-                {
-                    await producerCancellationTokenSource.CancelAsync();
-                }
-
-                try
-                {
-                    await producersTask;
-                }
-                catch (OperationCanceledException) when (producerCancellationTokenSource.IsCancellationRequested)
-                {
-                    // Cancellation is expected when the consumer stops enumeration early.
-                }
-            }
-        }
     }
 
-    /// <summary>
-    ///     Disposes resources used by the loader.
-    /// </summary>
-    public void Dispose()
+    [SuppressMessage("Minor Code Smell", "S1227:break statements should not be used except for switch cases")]
+    [SuppressMessage("Critical Code Smell", "S3776:Cognitive Complexity of methods should not be too high")]
+    private async IAsyncEnumerable<Chunk<TEntity>> LoadCoreAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        _producerLimiterSemaphore.Dispose();
-        _prefetchLimiterSemaphore.Dispose();
-    }
+        using var producerCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-    private static async Task RemoveCompletedTasksIfNecessaryAsync(List<Task> tasks, int maxConcurrentProducerCount, bool force)
-    {
-        // we only clean-up when forced or when we have a certain amount of tasks in the list
-        var shouldCleanUp = tasks.Count >= maxConcurrentProducerCount * 2;
-        if (!(shouldCleanUp || force))
-        {
-            return;
-        }
+        var completedChunks = new CompletedChunkList<TEntity>(_maxPrefetchCount);
+        var producerTasks = new ProducerList<TEntity>(_maxConcurrentProducerCount);
+        ICompletedChunkListReader<TEntity> completedChunksReader = _options.HasFlag(ChunkedEntityLoaderOptions.PreserveChunkOrder)
+            ? new OrderedCompletedChunkListReader<TEntity>(completedChunks)
+            : new CompletedChunkListReader<TEntity>(completedChunks);
 
-        for (var i = tasks.Count - 1; i >= 0; i--)
+        var chunkIndex = 0;
+
+        while (true)
         {
-            var task = tasks[i];
-            if (!task.IsCompleted)
+            await RemoveCompletedTasksFromProducerListAsync();
+
+            if (HasEncounteredEmptyChunk())
             {
-                continue;
+                break;
             }
 
-            await task;
-            tasks.RemoveAt(i);
+            // return completed chunks
+            while (true)
+            {
+                var chunk = completedChunksReader.TryGetAndRemoveNextChunk();
+                if (chunk is null)
+                {
+                    break;
+                }
+
+                yield return chunk;
+            }
+
+            // fill all producer slots but also make sure that we do not exceed the max prefetch count (completedChunks)
+            while (!producerTasks.IsFull && !completedChunks.IsFull)
+            {
+                var currentChunkIndex = chunkIndex;
+                var producerTask = Task.Run(() => ProduceAsync(currentChunkIndex, cancellationToken), cancellationToken);
+                producerTasks.Add(chunkIndex, producerTask);
+                chunkIndex++;
+            }
+
+            await producerTasks.WhenAnyAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        // drain out all producers
+        while (!producerTasks.IsEmpty)
+        {
+            var chunk = await producerTasks.GetAndRemoveNextCompletedChunkAsync(cancellationToken);
+            if (chunk.Entities.Count != 0)
+            {
+                completedChunks.AddChunk(chunk);
+            }
+        }
+
+        // retrieve the remaining chunks
+        while (true)
+        {
+            var chunk = completedChunksReader.TryGetAndRemoveNextChunk();
+            if (chunk is null)
+            {
+                break;
+            }
+
+            yield return chunk;
+        }
+
+        async Task RemoveCompletedTasksFromProducerListAsync()
+        {
+            while (true)
+            {
+                var chunk = await producerTasks.TryGetAndRemoveNextCompletedChunkAsync();
+                if (chunk is null)
+                {
+                    return;
+                }
+
+                if (chunk.Entities.Count == 0)
+                {
+                    SetEmptyChunkEncountered();
+                    return;
+                }
+
+                completedChunks.AddChunk(chunk);
+            }
         }
     }
+
+    private bool HasEncounteredEmptyChunk() => _emptyChunkCounter != 0;
+    private void SetEmptyChunkEncountered() => Interlocked.Increment(ref _emptyChunkCounter);
 
     private void AssertSingleUsage()
     {
@@ -255,199 +258,55 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         }
     }
 
-    private async Task StartProducersAsync(CancellationToken cancellationToken)
-    {
-        await Task.Yield();
-
-        var tasks = new List<Task>(_maxConcurrentProducerCount * 3);
-        Exception? completionException = null;
-
-        try
-        {
-            var entityCount = await GetExpectedEntityCountAsync(cancellationToken);
-            var chunkCount = CalculateChunkCount(entityCount);
-
-            _logger?.LogTrace("Starting chunked entity loader for EntityTypeName={EntityTypeName} with ChunkSize={ChunkSize}, MaxConcurrentProducerCount={MaxConcurrentProducerCount}, MaxPrefetchCount={MaxPrefetchCount}, ExpectedEntityCount={ExpectedEntityCount}, ChunkCount={ChunkCount}.",
-                EntityTypeName, _chunkSize, _producerLimiterSemaphore.CurrentCount, _prefetchLimiterSemaphore.CurrentCount, entityCount, chunkCount);
-
-            for (var i = 0; i < chunkCount && !HasErrors; i++)
-            {
-                var currentChunkIndex = i;
-                ChunkProductionStart?.Invoke(currentChunkIndex);
-
-                await _prefetchLimiterSemaphore.WaitAsync(cancellationToken);
-                await _producerLimiterSemaphore.WaitAsync(cancellationToken);
-
-                var task = Task.Run(() => ProduceAndReleaseSemaphoreAsync(currentChunkIndex, cancellationToken), CancellationToken.None); // we do not await this task to allow concurrent production
-                tasks.Add(task);
-
-                await RemoveCompletedTasksIfNecessaryAsync(tasks, _maxConcurrentProducerCount, force: false);
-                ChunkProductionEnd?.Invoke(currentChunkIndex);
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            // Linked producer token cancellation is expected (caller cancellation or early-stop cancellation).
-            // Producer tasks are awaited in finally before channel completion.
-        }
-        catch (Exception ex)
-        {
-            HasErrors = true;
-            _logger?.LogError(ex, "Exception in StartProducersAsync.");
-            completionException = ex;
-        }
-        finally
-        {
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                // Expected when producer cancellation is requested.
-            }
-            catch (Exception ex)
-            {
-                HasErrors = true;
-                _logger?.LogError(ex, "Exception while awaiting producer tasks.");
-                completionException ??= ex;
-            }
-
-            _channel.Writer.TryComplete(completionException);
-        }
-    }
-
-    private async Task ProduceAndReleaseSemaphoreAsync(int chunkIndex, CancellationToken cancellationToken)
-    {
-        try
-        {
-            StatisticsMonitor?.IncrementActiveProducer();
-            ChunkProductionInnerStart?.Invoke(chunkIndex);
-            await ProduceAsync(chunkIndex, cancellationToken);
-            ChunkProductionInnerEnd?.Invoke(chunkIndex);
-        }
-        finally
-        {
-            StatisticsMonitor?.DecrementActiveProducer();
-            _producerLimiterSemaphore.Release();
-        }
-    }
-
-    private async Task ProduceAsync(int chunkIndex, CancellationToken cancellationToken)
+    private async Task<Chunk<TEntity>> ProduceAsync(int chunkIndex, CancellationToken cancellationToken)
     {
         try
         {
             await using var context = _dbContextFactory();
-            await using var trx = await BeginUncommittedReadTransactionIfRequestedAsync(context, cancellationToken);
-            var query = _sourceQueryProvider(context);
-            var startIndex = checked(chunkIndex * _chunkSize);
 
-            _logger?.LogTrace("Producing chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName}", chunkIndex, startIndex, EntityTypeName);
+            var state = _startProducingChunkCallback is null
+                ? null
+                : await _startProducingChunkCallback.Invoke(new StartCallbackArgs<TDbContext>(context, chunkIndex));
 
-            var startedTimestamp = Stopwatch.GetTimestamp();
-
-            if (ChunkProductionStarted is not null)
+            try
             {
-                await ChunkProductionStarted.Invoke(chunkIndex);
+                var query = _sourceQueryProvider(context);
+                var startIndex = checked(chunkIndex * _chunkSize);
+
+                _logger?.LogTrace("Producing chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName}", chunkIndex, startIndex, EntityTypeName);
+
+                var startedTimestamp = Stopwatch.GetTimestamp();
+
+                var entities = await query
+                                    .Skip(startIndex)
+                                    .Take(_chunkSize)
+                                    .ToListAsync(cancellationToken);
+
+#pragma warning disable S125 // Commented out code
+                // Use this to simulate random execution times
+                //await Task.Delay(Random.Shared.Next(0, 5000));
+#pragma warning restore S125
+
+                _logger?.LogTrace("Produced chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName} with {EntityCount} entities in {DurationInMs} ms.", chunkIndex, startIndex, EntityTypeName, entities.Count, (int) Stopwatch.GetElapsedTime(startedTimestamp).TotalMilliseconds);
+
+                return new Chunk<TEntity>(chunkIndex, entities);
             }
-
-            var entities = await query
-                                .Skip(startIndex)
-                                .Take(_chunkSize)
-                                .ToListAsync(cancellationToken);
-
-            _logger?.LogTrace("Produced chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName} with {EntityCount} entities in {DurationInMs} ms.", chunkIndex, startIndex, EntityTypeName, entities.Count, (int) Stopwatch.GetElapsedTime(startedTimestamp).TotalMilliseconds);
-
-            var chunk = new Chunk<TEntity>(chunkIndex, entities);
-            await _channel.Writer.WriteAsync(chunk, cancellationToken);
-            StatisticsMonitor?.IncrementQueueSize();
+            finally
+            {
+                if (_endProducingChunkCallback is not null)
+                {
+                    await _endProducingChunkCallback(new EndCallbackArgs<TDbContext>(context, chunkIndex, state));
+                }
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _prefetchLimiterSemaphore.Release(); // required, otherwise StartProducersAsync() could remain blocked
             throw;
         }
         catch (Exception ex)
         {
-            HasErrors = true;
-            _prefetchLimiterSemaphore.Release(); // required, otherwise LoadAsync() would hang indefinitely
             _logger?.LogError(ex, "Error producing chunk #{ChunkIndex} for EntityTypeName={EntityTypeName}.", chunkIndex, EntityTypeName);
             throw;
-        }
-    }
-
-    private IChannelReader<TEntity> CreateChannelReader()
-        => _options.HasFlag(ChunkedEntityLoaderOptions.PreserveChunkOrder)
-            ? new OrderedChannelReader<TEntity>(_channel.Reader, _loggerFactory?.CreateLogger<OrderedChannelReader<TEntity>>())
-            : new UnorderedChannelReader<TEntity>(_channel.Reader, _loggerFactory?.CreateLogger<UnorderedChannelReader<TEntity>>());
-
-    private async Task<long> GetExpectedEntityCountAsync(CancellationToken cancellationToken)
-    {
-        await using var context = _dbContextFactory();
-        await using var trx = await BeginUncommittedReadTransactionIfRequestedAsync(context, cancellationToken);
-
-        _logger?.LogTrace("Getting total expected entity count for EntityTypeName={EntityTypeName}", EntityTypeName);
-        var count = await _sourceQueryProvider(context).LongCountAsync(cancellationToken);
-        _logger?.LogTrace("Expected entity count for EntityTypeName={EntityTypeName} is {EntityCount}.", EntityTypeName, count);
-
-        return count;
-    }
-
-    private int CalculateChunkCount(long entityCount)
-    {
-        var chunkCountLong = (entityCount / _chunkSize) + (entityCount % _chunkSize > 0 ? 1 : 0);
-
-        if (chunkCountLong > int.MaxValue)
-        {
-            throw new InvalidOperationException($"The query for '{EntityTypeName}' produces too many chunks ({chunkCountLong}). The current implementation supports up to {int.MaxValue} chunks.");
-        }
-
-        if (chunkCountLong == 0)
-        {
-            return 0;
-        }
-
-        var maxStartIndex = (chunkCountLong - 1) * _chunkSize;
-        if (maxStartIndex > int.MaxValue)
-        {
-            throw new InvalidOperationException($"The query for '{EntityTypeName}' contains too many rows for Skip/Take paging. Maximum supported start index is {int.MaxValue}, but calculated value is {maxStartIndex}.");
-        }
-
-        return (int) chunkCountLong;
-    }
-
-    private async Task<IDbContextTransaction?> BeginUncommittedReadTransactionIfRequestedAsync(DbContext dbContext, CancellationToken cancellationToken)
-    {
-        if (!_allowUncommittedReads)
-        {
-            _logger?.LogTrace("No uncommitted read requested; Therefore, no transaction was created");
-            return null;
-        }
-
-        _logger?.LogTrace("Beginning uncommitted read transaction on DbContext");
-        var trx = await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted, cancellationToken);
-
-        _logger?.LogTrace("Transaction with uncommitted read transaction started. TransactionId={TransactionId} SupportsSavepoints={SupportsSavepoints}", trx.TransactionId, trx.SupportsSavepoints);
-
-        var dbTrx = TryGetDbTransaction(trx);
-        if (dbTrx is not null)
-        {
-            _logger?.LogTrace("Transaction is of type DbTransaction. IsolationLevel={IsolationLevel}", dbTrx.IsolationLevel);
-        }
-
-        return trx;
-    }
-
-    private DbTransaction? TryGetDbTransaction(IDbContextTransaction dbContextTransaction)
-    {
-        try
-        {
-            return dbContextTransaction.GetDbTransaction();
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError(ex, "Unable to get underlying DbTransaction from DbContext.");
-            return null;
         }
     }
 }

@@ -4,7 +4,7 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking;
 ///     Defines an interface for loading entities in chunks asynchronously.
 /// </summary>
 /// <typeparam name="TEntity">The type of the entity being loaded.</typeparam>
-public interface IChunkedEntityLoader<TEntity> : IDisposable
+public interface IChunkedEntityLoader<TEntity>
     where TEntity : class
 {
     /// <summary>

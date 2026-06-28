@@ -24,7 +24,8 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options,
-        Func<int, Task>? chunkProductionStartedCallback = null
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null
     )
     {
         return new ChunkedEntityLoader<TDbContext, SimpleEntity>(
@@ -32,14 +33,12 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
             chunkSize: chunkSize,
             maxConcurrentProducerCount: maxConcurrentProducerCount,
             maxPrefetchCount: maxPrefetchCount,
+            startProducingChunkCallback: startProducingChunkCallback,
+            endProducingChunkCallback: endProducingChunkCallback,
             sourceQueryProvider: ctx => ctx.SimpleEntities.AsNoTracking().OrderBy(e => e.Id),
             options: options,
-            loggerFactory: LoggerFactory,
             logger: LoggerFactory.CreateLogger<ChunkedEntityLoader<TDbContext, SimpleEntity>>()
-        )
-        {
-            ChunkProductionStarted = chunkProductionStartedCallback
-        };
+        );
     }
 
     private static bool IsChunkOrderSequential<T>(in List<Chunk<T>> chunks)

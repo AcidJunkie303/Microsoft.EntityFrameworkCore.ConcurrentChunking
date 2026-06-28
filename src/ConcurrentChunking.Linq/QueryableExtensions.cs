@@ -27,7 +27,8 @@ public static class QueryableExtensions
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
-    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
+    /// <param name="startProducingChunkCallback">Callback for when a chunk is being produced.</param>
+    /// <param name="endProducingChunkCallback">Callback for when a chunk was produced.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
@@ -47,7 +48,8 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        bool allowUncommittedReads = false,
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
     )
@@ -61,7 +63,8 @@ public static class QueryableExtensions
                 maxConcurrentProducerCount: maxConcurrentProducerCount,
                 maxPrefetchCount: maxPrefetchCount,
                 options: options,
-                allowUncommittedReads: allowUncommittedReads,
+                startProducingChunkCallback: startProducingChunkCallback,
+                endProducingChunkCallback: endProducingChunkCallback,
                 loggerFactory: loggerFactory,
                 cancellationToken: cancellationToken
             );
@@ -82,7 +85,8 @@ public static class QueryableExtensions
     /// <param name="maxConcurrentProducerCount">The maximum number of concurrent producers.</param>
     /// <param name="maxPrefetchCount">The maximum number of chunks to prefetch.</param>
     /// <param name="options">Options for the chunked entity loader.</param>
-    /// <param name="allowUncommittedReads">Allows read-uncommitted transactions across separate DbContext instances.</param>
+    /// <param name="startProducingChunkCallback">Callback for when a chunk is being produced.</param>
+    /// <param name="endProducingChunkCallback">Callback for when a chunk was produced.</param>
     /// <param name="loggerFactory">Optional logger factory.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An asynchronous enumerable of chunks containing entities.</returns>
@@ -102,7 +106,8 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        bool allowUncommittedReads = false,
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
     )
@@ -110,7 +115,7 @@ public static class QueryableExtensions
         where TDbContext : DbContext
     {
         ValidateLoadChunkedArguments(query, dbContextFactory);
-        return LoadChunkedCoreAsync(query, dbContextFactory, chunkSize, maxConcurrentProducerCount, maxPrefetchCount, options, allowUncommittedReads, loggerFactory, cancellationToken);
+        return LoadChunkedCoreAsync(query, dbContextFactory, chunkSize, maxConcurrentProducerCount, maxPrefetchCount, options, startProducingChunkCallback, endProducingChunkCallback, loggerFactory, cancellationToken);
     }
 
     private static async IAsyncEnumerable<Chunk<TEntity>> LoadChunkedCoreAsync<TEntity, TDbContext>
@@ -121,7 +126,8 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options,
-        bool allowUncommittedReads,
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback,
         ILoggerFactory? loggerFactory,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
@@ -132,7 +138,7 @@ public static class QueryableExtensions
                                         ?? throw new InvalidOperationException("EntityQueryRootExpressionExtractor failed to extract the root expression from the query.");
         var rootEntityType = entityQueryRootExpression.EntityType.ClrType;
 
-        using ChunkedEntityLoader<TDbContext, TEntity> loader = new
+        ChunkedEntityLoader<TDbContext, TEntity> loader = new
         (
             dbContextFactory: new DbContextFactoryForFunc<TDbContext>(dbContextFactory),
             chunkSize: chunkSize,
@@ -140,8 +146,8 @@ public static class QueryableExtensions
             maxPrefetchCount: maxPrefetchCount,
             sourceQueryProvider: ctx => ApplyQueryToDbContext(ctx, rootEntityType, query),
             options: options,
-            allowUncommittedReads: allowUncommittedReads,
-            loggerFactory: loggerFactory,
+            startProducingChunkCallback: startProducingChunkCallback,
+            endProducingChunkCallback: endProducingChunkCallback,
             logger: loggerFactory?.CreateLogger<ChunkedEntityLoader<TDbContext, TEntity>>()
         );
 

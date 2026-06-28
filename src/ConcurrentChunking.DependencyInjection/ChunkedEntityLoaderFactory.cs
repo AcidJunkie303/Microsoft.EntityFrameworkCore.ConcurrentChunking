@@ -22,9 +22,10 @@ internal sealed class ChunkedEntityLoaderFactory<TDbContext> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
+        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
+        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        bool useLogging = true,
-        bool allowUncommittedReads = false
+        bool useLogging = true
     )
         where TEntity : class
     {
@@ -40,8 +41,6 @@ internal sealed class ChunkedEntityLoaderFactory<TDbContext> : IChunkedEntityLoa
             maxPrefetchCount: maxPrefetchCount,
             sourceQueryProvider: sourceQueryProvider,
             options: options,
-            allowUncommittedReads: allowUncommittedReads,
-            loggerFactory: _loggerFactory,
             logger: logger
         );
     }
