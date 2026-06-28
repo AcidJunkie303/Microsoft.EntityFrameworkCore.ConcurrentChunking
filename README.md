@@ -195,7 +195,7 @@ Start conservatively, measure DB pressure and memory usage, then increase settin
 
 - Always use deterministic ordering in source queries.
 - Consider `AsNoTracking()` for read-only workloads.
-- Each producer uses its own `DbContext` instance; make sure your factory is safe for concurrent use.
+- Each producer uses its own `DbContext` instance; make sure your factory is safe for concurrent use, and see [Advanced Usage](#advanced-usage) for how the `DbContext` can be overwritten in the chunk production callbacks.
 
 ## Build and test
 
