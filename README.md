@@ -39,7 +39,7 @@ dotnet add package EntityFrameworkCore.ConcurrentChunking.DependencyInjection
 ```csharp
 using Microsoft.EntityFrameworkCore.ConcurrentChunking;
 
-using var loader = new ChunkedEntityLoader<TestDbContext, SimpleEntity>(
+var loader = new ChunkedEntityLoader<TestDbContext, SimpleEntity>(
     dbContextFactory: () => new TestDbContext(),
     chunkSize: 100_000,
     maxConcurrentProducerCount: 3,
@@ -109,7 +109,7 @@ Create and consume a loader from DI:
 ```csharp
 var factory = services.GetRequiredService<IChunkedEntityLoaderFactory<TestDbContext>>();
 
-using var loader = factory.Create(
+var loader = factory.Create(
     chunkSize: 100_000,
     maxConcurrentProducerCount: 3,
     maxPrefetchCount: 5,
@@ -159,4 +159,3 @@ dotnet test -c Release
 ## License
 
 MIT. See `LICENSE.txt`.
-

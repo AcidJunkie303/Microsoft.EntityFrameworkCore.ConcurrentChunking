@@ -17,7 +17,6 @@
 - `ChunkedEntityLoader<TDbContext,TEntity>` is single-use (`AssertSingleUsage()`); never introduce reuse paths.
 - Effective producer concurrency is capped at `Math.Min(maxConcurrentProducerCount, maxPrefetchCount)`.
 - Early consumer stop must cancel producers and still complete channel cleanly (no hangs/leaked waits).
-- If `allowUncommittedReads` is set, each producer context opens `ReadUncommitted` (`BeginUncommittedReadTransactionIfRequestedAsync`).
 
 ## Where To Change What
 - Concurrency/backpressure/cancellation: `ConcurrentChunking/ChunkedEntityLoader.cs`.
@@ -61,6 +60,5 @@
 
 ## Practical Smoke-Test Entry Points
 - `Playground/Program.cs` and `PlaygroundWithNugetPackage/Program.cs` are fastest manual behavior checks.
-
 
 

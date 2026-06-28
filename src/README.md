@@ -19,14 +19,13 @@ This repository provides three packages:
 
 - Your query order must be deterministic and unique (for example `OrderBy(e => e.Id)`).
 - Each `ChunkedEntityLoader<TDbContext, TEntity>` instance is single-use.
-- `allowUncommittedReads` starts read-uncommitted transactions per producer context.
 
 ## Quick Usage
 
 ```csharp
 await using var context = new MyDbContext();
 
-using var loader = new ChunkedEntityLoader<MyDbContext, MyEntity>(
+var loader = new ChunkedEntityLoader<MyDbContext, MyEntity>(
     dbContextFactory: () => new MyDbContext(),
     chunkSize: 500,
     maxConcurrentProducerCount: 4,
@@ -80,19 +79,17 @@ using var serviceProvider = services.BuildServiceProvider();
 
 var loaderFactory = serviceProvider.GetRequiredService<IChunkedEntityLoaderFactory<MyDbContext>>();
 
-using var loader = loaderFactory.Create<MyEntity>(
+var loader = loaderFactory.Create<MyEntity>(
     chunkSize: 500,
     maxConcurrentProducerCount: 4,
     maxPrefetchCount: 8,
     sourceQueryProvider: db => db.Set<MyEntity>()
         .AsNoTracking()
         .OrderBy(x => x.Id),
-    options: ChunkedEntityLoaderOptions.PreserveChunkOrder,
-    allowUncommittedReads: false);
+    options: ChunkedEntityLoaderOptions.PreserveChunkOrder);
 
 await foreach (var chunk in loader.LoadAsync(CancellationToken.None))
 {
     // Process chunk.Entities
 }
 ```
-
