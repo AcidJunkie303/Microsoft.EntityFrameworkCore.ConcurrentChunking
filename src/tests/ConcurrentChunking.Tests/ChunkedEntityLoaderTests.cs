@@ -38,12 +38,12 @@ public sealed class ChunkedEntityLoaderTests : ChunkedEntityLoaderTestBase<InMem
                 startProducingChunkCallback: StartProducingChunkCallback,
                 endProducingChunkCallback: EndProducingChunkCallback);
 
-            Task<object?> StartProducingChunkCallback(IStartCallbackArgs<InMemoryDbContext> args)
+            Task<object?> StartProducingChunkCallback(ICallbackArgs<InMemoryDbContext> args)
                 => failLocationKind == FailLocationKind.ChunkProductionStart && args.ChunkIndex == 2
                     ? throw new InvalidOperationException(random)
                     : Task.FromResult<object?>(null);
 
-            Task<object?> EndProducingChunkCallback(IEndCallbackArgs<InMemoryDbContext> args)
+            Task<object?> EndProducingChunkCallback(ICallbackArgs<InMemoryDbContext> args)
                 => failLocationKind == FailLocationKind.ChunkProductionEnd && args.ChunkIndex == 2
                     ? throw new InvalidOperationException(random)
                     : Task.FromResult<object?>(null);

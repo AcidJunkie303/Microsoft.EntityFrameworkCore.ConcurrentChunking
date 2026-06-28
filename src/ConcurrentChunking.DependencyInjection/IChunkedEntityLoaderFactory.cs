@@ -8,7 +8,7 @@ namespace Microsoft.EntityFrameworkCore.ConcurrentChunking.DependencyInjection;
 /// </summary>
 /// <typeparam name="TDbContext">The type of <see cref="DbContext" />.</typeparam>
 [SuppressMessage("Major Code Smell", "S107:Methods should not have too many parameters")]
-public interface IChunkedEntityLoaderFactory<out TDbContext>
+public interface IChunkedEntityLoaderFactory<TDbContext>
     where TDbContext : DbContext
 {
     /// <summary>
@@ -36,8 +36,8 @@ public interface IChunkedEntityLoaderFactory<out TDbContext>
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         bool useLogging = true
     )

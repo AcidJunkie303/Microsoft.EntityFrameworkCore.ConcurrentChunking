@@ -48,8 +48,8 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
     )
@@ -106,8 +106,8 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ILoggerFactory? loggerFactory = null,
         in CancellationToken cancellationToken = default
     )
@@ -126,8 +126,8 @@ public static class QueryableExtensions
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback,
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback,
         ILoggerFactory? loggerFactory,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )

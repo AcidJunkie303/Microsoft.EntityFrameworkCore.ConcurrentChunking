@@ -23,7 +23,6 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
             {
                 Interlocked.Increment(ref chunkProductionStartedCount);
                 await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
-                return null;
             });
 
         // act
@@ -122,8 +121,6 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
                 {
                     await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
                 }
-
-                return null;
             });
 
         // act

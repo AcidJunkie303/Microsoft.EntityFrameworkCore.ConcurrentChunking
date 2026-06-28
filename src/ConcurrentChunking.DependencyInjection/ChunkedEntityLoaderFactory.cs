@@ -22,8 +22,8 @@ internal sealed class ChunkedEntityLoaderFactory<TDbContext> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         bool useLogging = true
     )

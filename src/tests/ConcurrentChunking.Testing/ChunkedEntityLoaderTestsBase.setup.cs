@@ -24,8 +24,8 @@ public abstract partial class ChunkedEntityLoaderTestBase<TDbContext, TTestData>
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         ChunkedEntityLoaderOptions options,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null
     )
     {
         return new ChunkedEntityLoader<TDbContext, SimpleEntity>(

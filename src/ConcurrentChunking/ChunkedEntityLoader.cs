@@ -23,8 +23,8 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     private readonly int _maxConcurrentProducerCount;
     private readonly int _chunkSize;
     private readonly int _maxPrefetchCount;
-    private readonly Func<IStartCallbackArgs<TDbContext>, Task<object?>>? _startProducingChunkCallback;
-    private readonly Func<IEndCallbackArgs<TDbContext>, Task>? _endProducingChunkCallback;
+    private readonly Func<ICallbackArgs<TDbContext>, Task>? _startProducingChunkCallback;
+    private readonly Func<ICallbackArgs<TDbContext>, Task>? _endProducingChunkCallback;
     private int _usageCounter;
     private int _emptyChunkCounter;
 
@@ -67,8 +67,8 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
@@ -120,8 +120,8 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         int maxConcurrentProducerCount,
         int maxPrefetchCount,
         Func<TDbContext, IOrderedQueryable<TEntity>> sourceQueryProvider,
-        Func<IStartCallbackArgs<TDbContext>, Task<object?>>? startProducingChunkCallback = null,
-        Func<IEndCallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? startProducingChunkCallback = null,
+        Func<ICallbackArgs<TDbContext>, Task>? endProducingChunkCallback = null,
         ChunkedEntityLoaderOptions options = ChunkedEntityLoaderOptions.PreserveChunkOrder,
         ILogger<ChunkedEntityLoader<TDbContext, TEntity>>? logger = null
     )
@@ -262,15 +262,11 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
     {
         try
         {
-            await using var context = _dbContextFactory();
-
-            var state = _startProducingChunkCallback is null
-                ? null
-                : await _startProducingChunkCallback.Invoke(new StartCallbackArgs<TDbContext>(context, chunkIndex));
+            using var contextAndState = await CreateDbContextAndStateAsync(chunkIndex);
 
             try
             {
-                var query = _sourceQueryProvider(context);
+                var query = _sourceQueryProvider(contextAndState.DbContext);
                 var startIndex = checked(chunkIndex * _chunkSize);
 
                 _logger?.LogTrace("Producing chunk #{ChunkIndex} with StartIndex={StartIndex} for EntityTypeName={EntityTypeName}", chunkIndex, startIndex, EntityTypeName);
@@ -295,7 +291,7 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
             {
                 if (_endProducingChunkCallback is not null)
                 {
-                    await _endProducingChunkCallback(new EndCallbackArgs<TDbContext>(context, chunkIndex, state));
+                    await _endProducingChunkCallback(new CallbackArgs<TDbContext>(contextAndState.DbContext, chunkIndex, contextAndState.State));
                 }
             }
         }
@@ -307,6 +303,53 @@ public sealed class ChunkedEntityLoader<TDbContext, TEntity> : IChunkedEntityLoa
         {
             _logger?.LogError(ex, "Error producing chunk #{ChunkIndex} for EntityTypeName={EntityTypeName}.", chunkIndex, EntityTypeName);
             throw;
+        }
+    }
+
+    private async Task<DbContextAndState> CreateDbContextAndStateAsync(int chunkIndex)
+    {
+        TDbContext? dbContext = null;
+
+        try
+        {
+            dbContext = _dbContextFactory();
+
+            if (_startProducingChunkCallback is null)
+            {
+                return new DbContextAndState(dbContext, State: null, DisposeDbContext: true);
+            }
+
+            var args = new CallbackArgs<TDbContext>(dbContext, chunkIndex, state: null);
+            await _startProducingChunkCallback(args);
+
+            // If DbContext has been provided/overwritten by the callback
+            var isOurDbContext = ReferenceEquals(dbContext, args.DbContext);
+            if (!isOurDbContext)
+            {
+                await dbContext.DisposeAsync();
+            }
+
+            return new DbContextAndState(args.DbContext, args.State, isOurDbContext);
+        }
+        catch
+        {
+            if (dbContext is not null)
+            {
+                await dbContext.DisposeAsync();
+            }
+
+            throw;
+        }
+    }
+
+    private sealed record DbContextAndState(TDbContext DbContext, object? State, bool DisposeDbContext) : IDisposable
+    {
+        public void Dispose()
+        {
+            if (DisposeDbContext)
+            {
+                DbContext.Dispose();
+            }
         }
     }
 }

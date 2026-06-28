@@ -131,6 +131,57 @@ await foreach (var chunk in loader.LoadAsync(CancellationToken.None))
 }
 ```
 
+## Advanced Usage
+
+### Chunk production callbacks
+
+All loader entry points support two optional callbacks:
+
+- `startProducingChunkCallback` runs before a chunk query starts.
+- `endProducingChunkCallback` runs after the chunk query finishes.
+
+Both callbacks receive `ICallbackArgs<TContext>`, which exposes:
+
+- `ChunkIndex` - the zero-based chunk number (read-only).
+- `DbContext` - the context used for the chunk. You can replace it in the start callback if you need a custom instance.
+- `State` - any value you want to pass from the start callback to the end callback.
+
+This is useful for chunk-level logging, correlation IDs, metrics, or swapping in a specialized context for a specific chunk.
+
+```csharp
+using Microsoft.EntityFrameworkCore.ConcurrentChunking;
+
+var loader = new ChunkedEntityLoader<TestDbContext, SimpleEntity>(
+    dbContextFactory: () => new TestDbContext(),
+    chunkSize: 100_000,
+    maxConcurrentProducerCount: 3,
+    maxPrefetchCount: 5,
+    sourceQueryProvider: ctx => ctx.SimpleEntities.OrderBy(e => e.Id),
+    startProducingChunkCallback: args =>
+    {
+        args.State = Stopwatch.GetTimestamp();
+
+        if (args.ChunkIndex == 0)
+        {
+            args.DbContext = new TestDbContext();
+        }
+
+        return Task.CompletedTask;
+    },
+    endProducingChunkCallback: args =>
+    {
+        if (args.State is long startedAt)
+        {
+            var elapsed = Stopwatch.GetElapsedTime(startedAt);
+            Console.WriteLine($"Chunk {args.ChunkIndex} completed in {elapsed.TotalMilliseconds:n0} ms.");
+        }
+
+        return Task.CompletedTask;
+    });
+```
+
+The same callbacks are available on `LoadChunkedAsync(...)` and on `IChunkedEntityLoaderFactory<TDbContext>.Create(...)`, so you can use the same pattern whether you construct the loader directly, through LINQ, or from dependency injection.
+
 ## Tuning guidance
 
 - `chunkSize`: larger chunks reduce round-trips but increase memory per chunk.
